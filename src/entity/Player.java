@@ -249,9 +249,9 @@ public class Player extends Entity {
         }
 
         // Draw solid area for debugging (hit box)
-        g2.setColor(Color.RED);
-        int solidAreaScreenX = screenX + solidArea.x;
-        int solidAreaScreenY = screenY + solidArea.y;
-        g2.drawRect(solidAreaScreenX, solidAreaScreenY, solidArea.width, solidArea.height);
+        // g2.setColor(Color.RED);
+        // int solidAreaScreenX = screenX + solidArea.x;
+        // int solidAreaScreenY = screenY + solidArea.y;
+        // g2.drawRect(solidAreaScreenX, solidAreaScreenY, solidArea.width, solidArea.height);
     }
 }

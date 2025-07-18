@@ -162,8 +162,8 @@ public class NPC_OldMan extends Entity {
             }
 
             // Display hit/collision box for debugging
-            g2.setColor(Color.RED);
-            g2.drawRect(screenX + solidArea.x, screenY + solidArea.y, solidArea.width, solidArea.height);
+            // g2.setColor(Color.RED);
+            // g2.drawRect(screenX + solidArea.x, screenY + solidArea.y, solidArea.width, solidArea.height);
         }        
     }
 
