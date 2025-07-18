@@ -11,31 +11,27 @@ import java.awt.Image;
 
 
 public class Player extends Entity {
-    GamePanel gp;
     KeyHandler keyH;
 
     public final int screenX;
     public final int screenY;
 
-    // Player Object Interactions
-    // public int hasKey = 0; // Counter for keys collected
-
-
     // Animation images for all directions (6 frames each)
     public BufferedImage[][] animationImages = new BufferedImage[5][6]; // [direction][frame]
     // 0=up, 1=down, 2=left, 3=right, 4=idle
-    
+
     public int idleCounter = 0;
     public int idleFrame = 1;
 
     public Player(GamePanel gp, KeyHandler keyH) {
-        this.gp = gp;
+        super(gp); 
+        
         this.keyH = keyH;
 
         this.screenX = gp.screenWidth / 2 - (gp.tileSize / 2); // Center player on screen
         this.screenY = gp.screenHeight / 2 - (gp.tileSize / 2); // Center player on screen
 
-        solidArea = new Rectangle(18, 50, 13, 13); // Larger collision area for better movement
+        solidArea = new Rectangle(18, 42, 13, 18); // Larger collision area for better movement
         solidAreaDefaultX = solidArea.x; // Default X position of the solid area
         solidAreaDefaultY = solidArea.y; // Default Y position of the solid area
         setDefaultValues(); // Set initial position and speed
@@ -45,9 +41,19 @@ public class Player extends Entity {
     public void setDefaultValues() {
         worldX = gp.tileSize * 23; // Initial X position - center of 50x50 map
         worldY = gp.tileSize * 22; // Initial Y position - center of 50x50 map
-        speed = 4; // Speed of player movement
+        speed = 4; // Speed of player movement - fixed at 4
         direction = "down"; // Default direction
+    }
 
+    public void interctNPC(int index) {
+        if (index != -1) { // If an NPC is collided
+            if (gp.keyHandler.enterPressed) {
+                gp.gameState = gp.dialogState; // Change game state to dialog
+                gp.npc[index].speak(); // Call the speak method of the NPC
+            }
+            
+        }
+        gp.keyHandler.enterPressed = false; // Reset enter key after interaction
     }
 
     public void getPlayerImage() {
@@ -102,6 +108,16 @@ public class Player extends Entity {
     }
 
     public void update() {
+        // Force speed to be 4 always (prevent speed bugs)
+        speed = 4;
+        
+        // Don't update player movement during dialogue
+        if (gp.gameState == gp.dialogState) {
+            // Keep idle animation during dialogue
+            handleIdleState();
+            return;
+        }
+        
         boolean isMoving = keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed;
         
         if (isMoving) {
@@ -122,6 +138,10 @@ public class Player extends Entity {
             int objIndex = gp.cChecker.checkObject(this, true);
             pickUpObject(objIndex);
 
+            // Check NPC collision
+            int npcIndex = gp.cChecker.checkEntity(this, gp.npc);
+            interctNPC(npcIndex);
+
             // Only move if there's no collision
             if (!collisionOn) {
                 updatePosition();
@@ -135,11 +155,12 @@ public class Player extends Entity {
     }
     
     private void updatePosition() {
+        // Simple fixed movement - no speed multiplication or accumulation
         switch (direction) {
-            case "up": worldY -= speed; break;
-            case "down": worldY += speed; break;
-            case "left": worldX -= speed; break;
-            case "right": worldX += speed; break;
+            case "up": worldY -= 4; break;      // Fixed speed 4
+            case "down": worldY += 4; break;    // Fixed speed 4
+            case "left": worldX -= 4; break;    // Fixed speed 4
+            case "right": worldX += 4; break;   // Fixed speed 4
         }
     }
     
@@ -228,9 +249,9 @@ public class Player extends Entity {
         }
 
         // Draw solid area for debugging (hit box)
-        // g2.setColor(Color.RED);
-        // int solidAreaScreenX = screenX + solidArea.x;
-        // int solidAreaScreenY = screenY + solidArea.y;
-        // g2.drawRect(solidAreaScreenX, solidAreaScreenY, solidArea.width, solidArea.height);
+        g2.setColor(Color.RED);
+        int solidAreaScreenX = screenX + solidArea.x;
+        int solidAreaScreenY = screenY + solidArea.y;
+        g2.drawRect(solidAreaScreenX, solidAreaScreenY, solidArea.width, solidArea.height);
     }
 }

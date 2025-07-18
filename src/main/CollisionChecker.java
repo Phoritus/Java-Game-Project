@@ -129,4 +129,95 @@ public class CollisionChecker {
         }
         return index; // Return the index of the collided object or -1 if none
     }
+
+    // NPC or Monster collision check
+    public int checkEntity(Entity entity, Entity[] targetEntities) {
+        int index = -1; // Default index if no collision occurs
+
+        for (int i = 0; i < targetEntities.length; i++) {
+            if (targetEntities[i] != null && targetEntities[i] != entity) { // Skip self-collision check
+                // Get the entity's solid area position after potential movement
+                entity.solidArea.x = entity.worldX + entity.solidArea.x;
+                entity.solidArea.y = entity.worldY + entity.solidArea.y;
+                
+                // Predict future position based on direction and speed
+                switch (entity.direction) {
+                    case "up":
+                        entity.solidArea.y -= entity.speed;
+                        break;
+                    case "down":
+                        entity.solidArea.y += entity.speed;
+                        break;
+                    case "left":
+                        entity.solidArea.x -= entity.speed;
+                        break;
+                    case "right":
+                        entity.solidArea.x += entity.speed;
+                        break;
+                }
+
+                // Get the target entity's solid area
+                targetEntities[i].solidArea.x = targetEntities[i].worldX + targetEntities[i].solidAreaDefaultX;
+                targetEntities[i].solidArea.y = targetEntities[i].worldY + targetEntities[i].solidAreaDefaultY;
+
+                // Check for collision
+                if (entity.solidArea.intersects(targetEntities[i].solidArea)) {
+                    entity.collisionOn = true;
+                    index = i; // Return the index of the collided entity
+                }
+
+                // Reset solid area positions
+                entity.solidArea.x = entity.solidAreaDefaultX;
+                entity.solidArea.y = entity.solidAreaDefaultY;
+                targetEntities[i].solidArea.x = targetEntities[i].solidAreaDefaultX;
+                targetEntities[i].solidArea.y = targetEntities[i].solidAreaDefaultY;
+            }
+        }
+        return index; // Return the index of the collided entity or -1 if none
+    }
+
+    // Check collision between NPC and Player
+    public int checkPlayer(Entity entity) {
+        int index = -1; // Default return value if no collision
+        
+        if (gp.player != null && entity != gp.player) { // Make sure it's not the player checking itself
+            // Get the NPC's solid area position after potential movement
+            entity.solidArea.x = entity.worldX + entity.solidArea.x;
+            entity.solidArea.y = entity.worldY + entity.solidArea.y;
+            
+            // Predict future position based on direction and speed
+            switch (entity.direction) {
+                case "up":
+                    entity.solidArea.y -= entity.speed;
+                    break;
+                case "down":
+                    entity.solidArea.y += entity.speed;
+                    break;
+                case "left":
+                    entity.solidArea.x -= entity.speed;
+                    break;
+                case "right":
+                    entity.solidArea.x += entity.speed;
+                    break;
+            }
+
+            // Get the player's solid area
+            gp.player.solidArea.x = gp.player.worldX + gp.player.solidAreaDefaultX;
+            gp.player.solidArea.y = gp.player.worldY + gp.player.solidAreaDefaultY;
+
+            // Check for collision
+            if (entity.solidArea.intersects(gp.player.solidArea)) {
+                entity.collisionOn = true;
+                index = 0; // Return 0 to indicate player collision
+            }
+
+            // Reset solid area positions
+            entity.solidArea.x = entity.solidAreaDefaultX;
+            entity.solidArea.y = entity.solidAreaDefaultY;
+            gp.player.solidArea.x = gp.player.solidAreaDefaultX;
+            gp.player.solidArea.y = gp.player.solidAreaDefaultY;
+        }
+        
+        return index; // Return 0 if collision with player, -1 if no collision
+    }
 }

@@ -40,6 +40,8 @@ public class Sound {
     public void stop() {
         if (clip != null) {
             clip.stop(); // Stop the sound
+            clip.close(); // Close the clip to free resources
+            clip = null; // Reset clip reference
         }
     }
 }

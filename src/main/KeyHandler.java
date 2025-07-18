@@ -6,7 +6,7 @@ import java.awt.event.KeyListener;
 public class KeyHandler implements KeyListener {
     // KeyHandler implementation goes here
     // This class will handle key events for the game
-    public boolean upPressed, downPressed, leftPressed, rightPressed;
+    public boolean upPressed, downPressed, leftPressed, rightPressed, enterPressed;
     GamePanel gp; // Reference to GamePanel
 
     @Override
@@ -22,32 +22,75 @@ public class KeyHandler implements KeyListener {
     public void keyPressed(KeyEvent e) {
         // Handle key pressed events
         int keyCode = e.getKeyCode();
-        if (keyCode == KeyEvent.VK_W) {
-            // Move player up
-            upPressed = true;
-        } else if (keyCode == KeyEvent.VK_S) {
-            // Move player down
-            downPressed = true;
-        } else if (keyCode == KeyEvent.VK_A) {
-            // Move player left
-            leftPressed = true;
-        } else if (keyCode == KeyEvent.VK_D) {
-            // Move player right
-            rightPressed = true;
-        } else if (keyCode == KeyEvent.VK_P) {
-            // Toggle pause state
-            System.out.println("P key pressed! Current state: " + gp.gameState);
-            if (gp.gameState == gp.playState) {
-                gp.gameState = gp.pauseState; // Pause the game
-                System.out.println("Game paused!");
-            } else if (gp.gameState == gp.pauseState) {
-                gp.gameState = gp.playState; // Resume the game
-                System.out.println("Game resumed!");
+
+        // Title State
+        if (gp.gameState == gp.titleState) {
+            if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
+                gp.ui.commandNumber--; // Move up in the menu
+                if (gp.ui.commandNumber < 0) {
+                    gp.ui.commandNumber = 2; // Wrap to last option (QUIT GAME)
+                }
+                gp.repaint(); // Force repaint to update UI
+            } else if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
+                gp.ui.commandNumber++; // Move down in the menu
+                if (gp.ui.commandNumber > 2) {
+                    gp.ui.commandNumber = 0; // Wrap to first option (NEW GAME)
+                }
+                gp.repaint(); // Force repaint to update UI
+            } else if (keyCode == KeyEvent.VK_ENTER) {
+                // Handle menu selection
+                if (gp.ui.commandNumber == 0) {
+                    // NEW GAME
+                    gp.gameState = gp.playState;
+                } else if (gp.ui.commandNumber == 1) {
+                    // LOAD GAME (not implemented yet)
+                    gp.gameState = gp.playState; // For now, just start the game
+                } else if (gp.ui.commandNumber == 2) {
+                    // QUIT GAME
+                    System.exit(0);
+                }
             }
-        } else if (keyCode == KeyEvent.VK_M) {
+        }
+
+        if (gp.gameState == gp.playState || gp.gameState == gp.pauseState) {
+            if (keyCode == KeyEvent.VK_W) {
+                // Move player up
+                upPressed = true;
+            } else if (keyCode == KeyEvent.VK_S) {
+                // Move player down
+                downPressed = true;
+            } else if (keyCode == KeyEvent.VK_A) {
+                // Move player left
+                leftPressed = true;
+            } else if (keyCode == KeyEvent.VK_D) {
+                // Move player right
+                rightPressed = true;
+            } else if (keyCode == KeyEvent.VK_P) {
+                // Toggle pause state
+                System.out.println("P key pressed! Current state: " + gp.gameState);
+                gp.gameState = (gp.gameState == gp.playState) ? gp.pauseState : gp.playState; // Toggle between play and pause
+            } else if (keyCode == KeyEvent.VK_F) {
+                // Handle F key for dialogue or other actions
+                enterPressed = true;
+            }
+            
+        }
+
+        // Pause and music controls
+         if (keyCode == KeyEvent.VK_M) {
             // Toggle music on/off
             gp.toggleMusic();
             System.out.println("Music toggled: " + (gp.musicOn ? "ON" : "OFF"));
+        }
+
+        // Dialogue control
+         if (gp.gameState == gp.dialogState) {
+            if (keyCode == KeyEvent.VK_F) {
+                gp.gameState = gp.playState; // Exit dialogue state
+            } else if (keyCode == KeyEvent.VK_ESCAPE) {
+                // Exit dialogue state
+                gp.gameState = gp.playState;
+            }
         }
 
         // Debugging output
@@ -58,12 +101,8 @@ public class KeyHandler implements KeyListener {
             System.exit(0); // Exit the game on Escape key
         }
 
-        
-
-        
     }
 
-    
     @Override
     public void keyReleased(KeyEvent e) {
         // Handle key released events
@@ -78,5 +117,5 @@ public class KeyHandler implements KeyListener {
             rightPressed = false;
         }
     }
-    
+
 }

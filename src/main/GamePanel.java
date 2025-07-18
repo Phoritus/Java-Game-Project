@@ -1,7 +1,7 @@
 package src.main;
 
 import javax.swing.JPanel;
-
+import src.entity.Entity;
 import src.entity.Player;
 import src.object.SuperObject;
 import src.tile.TileManager;
@@ -34,38 +34,41 @@ public class GamePanel extends JPanel implements Runnable {
     // Sound settings
     src.main.Sound music = new src.main.Sound(); // Sound manager for handling game sounds
     src.main.Sound se = new src.main.Sound(); // Sound manager for handling game sounds
-    
 
     // FPS settings
     final int targetFPS = 60; // Target frames per second
     final int maxFPS = 60; // Maximum frames per second
 
     // System settings
-    src.main.KeyHandler keyHandler = new src.main.KeyHandler(this); // Key handler for input
+    public src.main.KeyHandler keyHandler = new src.main.KeyHandler(this); // Key handler for input
     Thread gameThread; // Thread for game loop
     public TileManager tileManager = new TileManager(this); // Tile manager for handling tiles
     public src.main.UI ui = new src.main.UI(this); // UI manager for handling the user interface
-    public src.main.AssetSetter assetSetter = new src.main.AssetSetter(this); // Asset setter for initializing game objects
-    public src.main.CollisionChecker cChecker = new src.main.CollisionChecker(this); // Collision checker for handling collisions
-    
+    public src.main.AssetSetter assetSetter = new src.main.AssetSetter(this); // Asset setter for initializing game
+                                                                              // objects
+    public src.main.CollisionChecker cChecker = new src.main.CollisionChecker(this); // Collision checker for handling
+                                                                                     // collisions
+
     // Entities and objects
     public Player player = new Player(this, keyHandler); // Player entity
     public SuperObject obj[] = new SuperObject[10]; // Array to hold game objects
+    public Entity npc[] = new Entity[10]; // Array to hold NPCs (Non-Player Characters)
 
     // Game State
     public int gameState;
+    public final int titleState = 0; // Game is in title screen state
     public final int playState = 1; // Game is in play state
     public final int pauseState = 2; // Game is paused
-    
+    public final int dialogState = 3; // Dialog state for NPC interactions
+
     // Sound State
     public boolean musicOn = true; // Track if music is on or off
-
 
     // Constructor
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         this.setBackground(Color.BLACK);
-        this.setDoubleBuffered(true);  // Enable double buffering for smoother rendering
+        this.setDoubleBuffered(true); // Enable double buffering for smoother rendering
         // Additional initialization code can go here
         this.addKeyListener(keyHandler); // Add key listener for input handling
         this.setFocusable(true); // Make the panel focusable to receive key events
@@ -74,9 +77,9 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void setupGame() {
         assetSetter.setObject(); // Set up game objects
-        playMusic(0); // Play background music
-        gameState = playState; // Set initial game state to play
-
+        assetSetter.setNPC(); // Set up NPCs
+        // playMusic(0); // Play background music
+        gameState = titleState; // Set initial game state to title screen
     }
 
     public void startGameThread() {
@@ -84,27 +87,33 @@ public class GamePanel extends JPanel implements Runnable {
         gameThread.start(); // Start the game loop thread
     }
 
-    @Override 
+    @Override
     public void run() {
         double drawInterval = 1000000000 / targetFPS; // Time per frame in nanoseconds
         double delta = 0; // Time difference accumulator
         long lastTime = System.nanoTime(); // Last time the game was updated
         long currentTime;
-        long lastFPSCheck = System.nanoTime(); // Last time FPS was checked
 
         while (gameThread != null) {
             currentTime = System.nanoTime(); // Get the current time
             delta += (currentTime - lastTime) / drawInterval; // Calculate the time difference
             lastTime = currentTime; // Update last time
-            
-            if (gameState == playState) {
-                if (currentTime - lastFPSCheck >= 1000000000) { // Check FPS every second
-                    System.out.println("FPS: " + targetFPS); // Print current FPS
-                    lastFPSCheck = currentTime; // Update last FPS check time
+
+            if (gameState == titleState) {
+                // Title state - only repaint for animation
+                if (delta >= 1) {
+                    repaint(); // Repaint to update title screen animation
+                    delta--;
                 }
-                
+            } else if (gameState == playState) {
                 if (delta >= 1) { // If enough time has passed for a frame
                     update(); // Update game logic
+                    repaint(); // Render the game
+                    delta--; // Decrease delta by 1 to indicate a frame has been processed
+                }
+            } else if (gameState == dialogState) {
+                if (delta >= 1) { // Update during dialog too
+                    update(); // Update game logic (for animations)
                     repaint(); // Render the game
                     delta--; // Decrease delta by 1 to indicate a frame has been processed
                 }
@@ -125,33 +134,34 @@ public class GamePanel extends JPanel implements Runnable {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            
+
         }
     }
 
-    public void update() {        
+    public void update() {
         // Game state handling
         if (gameState == playState) {
-            // Update game time only when playing
-            ui.gameTime += 1.0/60.0; // Assuming 60 FPS
-            
-            // Update game logic for play state
-            player.update(); // Update player position and state
-            tileManager.update(); // Update tile animations
-            
-            // Check for chests that should be removed after opening
-            for (int i = 0; i < obj.length; i++) {
-                if (obj[i] != null && obj[i] instanceof src.object.OBJ_Chest) {
-                    src.object.OBJ_Chest chest = (src.object.OBJ_Chest) obj[i];
-                    if (chest.shouldBeRemoved) {
-                        obj[i] = null; // Remove the chest from the game
-                        System.out.println("Chest removed after opening!");
+            tileManager.update(); // Update tile animations (water, etc.)
+            player.update(); // Update player state
+            for (int i = 0; i < npc.length; i++) {
+                if (npc[i] != null) {
+                    npc[i].update(); // Update each NPC
+                }
+            }
+        } else if (gameState == dialogState) {
+            // During dialog, still update animations but not player movement
+            tileManager.update(); // Keep water animations going
+            player.update(); // Player handles dialog state internally
+            for (int i = 0; i < npc.length; i++) {
+                if (npc[i] != null) {
+                    // Update NPC animations during dialog
+                    if (npc[i] instanceof src.entity.NPC_OldMan) {
+                        ((src.entity.NPC_OldMan) npc[i]).updateAnimation();
                     }
                 }
             }
         } else if (gameState == pauseState) {
-            // Don't update anything during pause - game is truly paused
-            // System.out.println("Game is paused - state: " + gameState);
+            // Handle pause state logic if needed
         }
     }
 
@@ -160,32 +170,82 @@ public class GamePanel extends JPanel implements Runnable {
         // Render game graphics here
         Graphics2D g2 = (Graphics2D) g;
 
-        //Debugging grid
-        long drawStart = System.nanoTime(); // Start time for rendering
+        // Title screen
+        if (gameState == titleState) {
+            ui.draw(g2); // Draw only the title screen UI
+        }
+        // Play state - draw game world
+        else if (gameState == playState) {
+            // Draw game elements
+            tileManager.draw(g2); // Draw the tiles
 
-        // Always draw game elements (even when paused)
-        tileManager.draw(g2); // Draw the tiles
-
-        // Objects
-        for (SuperObject obj : this.obj) {
-            if (obj != null) {
-                obj.draw(g2, this); // Draw each object
+            // Objects
+            for (SuperObject obj : this.obj) {
+                if (obj != null) {
+                    obj.draw(g2, this); // Draw each object
+                }
             }
-        }
 
-        player.draw(g2); // Draw the player on the screen
-        
-        // Show debug info only during play
-        if (gameState == playState) {
-            long drawEnd = System.nanoTime(); // End time for rendering
-            double drawTime = (drawEnd - drawStart) / 1000000.0;
-            g2.setColor(Color.WHITE); // Set text color to white for better visibility
-            g2.drawString("Draw Time: " + String.format("%.2f", drawTime) + " ms", 10, screenHeight - 20); // Display draw time at bottom
-            System.out.println("Draw Time: " + drawTime + " ms"); // Print draw time to console
-        }
+            // NPCs
+            for (int i = 0; i < npc.length; i++) {
+                if (npc[i] != null) {
+                    npc[i].draw(g2, this); // Draw each NPC
+                }
+            }
 
-        // UI (always draw - handles pause screen and game time)
-        ui.draw(g2); // Draw the user interface
+            player.draw(g2); // Draw the player on the screen
+
+            // UI
+            ui.draw(g2); // Draw the user interface
+        }
+        // Dialog state - draw game world + dialog UI
+        else if (gameState == dialogState) {
+            // Draw game elements
+            tileManager.draw(g2); // Draw the tiles
+
+            // Objects
+            for (SuperObject obj : this.obj) {
+                if (obj != null) {
+                    obj.draw(g2, this); // Draw each object
+                }
+            }
+
+            // NPCs
+            for (int i = 0; i < npc.length; i++) {
+                if (npc[i] != null) {
+                    npc[i].draw(g2, this); // Draw each NPC
+                }
+            }
+
+            player.draw(g2); // Draw the player on the screen
+
+            // UI (includes dialog box)
+            ui.draw(g2); // Draw the user interface with dialog
+        }
+        // Pause state - draw game world + pause UI
+        else if (gameState == pauseState) {
+            // Draw game elements
+            tileManager.draw(g2); // Draw the tiles
+
+            // Objects
+            for (SuperObject obj : this.obj) {
+                if (obj != null) {
+                    obj.draw(g2, this); // Draw each object
+                }
+            }
+
+            // NPCs
+            for (int i = 0; i < npc.length; i++) {
+                if (npc[i] != null) {
+                    npc[i].draw(g2, this); // Draw each NPC
+                }
+            }
+
+            player.draw(g2); // Draw the player on the screen
+
+            // UI (includes pause screen)
+            ui.draw(g2); // Draw the user interface with pause overlay
+        }
 
         g2.dispose(); // Dispose of the graphics context
     }
@@ -199,9 +259,11 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void stopMusic() {
-        music.stop(); // Stop the currently playing music
+        if (music != null) {
+            music.stop(); // Stop the currently playing music
+        }
     }
-    
+
     public void toggleMusic() {
         musicOn = !musicOn; // Toggle music state
         if (musicOn) {
