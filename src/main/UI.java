@@ -2,7 +2,12 @@ package src.main;
 
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.io.InputStream;
+
+import src.entity.Entity;
+import src.object.OBJ_Heart;
+
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -24,6 +29,8 @@ public class UI {
     public int titleCurrentFrame = 0;
     public int titleAnimationSpeed = 1; // Slower animation for title screen
 
+    BufferedImage heart_full, heart_half, heart_blank; // Heart images for health display
+
     public UI(GamePanel gp) {
         this.gp = gp; // Initialize the GamePanel reference
         try {
@@ -32,6 +39,11 @@ public class UI {
         } catch (Exception e) {
             e.printStackTrace(); // Handle exceptions, such as file not found
         }
+        //  Create heart images for health display
+        Entity heart = new OBJ_Heart(gp);
+        heart_full = heart.image; // Full heart image
+        heart_half = heart.image2; // Half heart image
+        heart_blank = heart.image3; // Blank heart image
     }
 
     public void showMessage(String text) {
@@ -53,8 +65,10 @@ public class UI {
 
         if (gp.gameState == gp.playState) {
             // Draw music toggle button at top right
+            drawPlayerHealth();
             drawMusicButton();
         } else if (gp.gameState == gp.pauseState) {
+            drawPlayerHealth();
             drawPauseScreen();
 
             // Draw music button even when paused
@@ -63,8 +77,44 @@ public class UI {
 
         // Dialog state
         if (gp.gameState == gp.dialogState) {
+            drawPlayerHealth();
             drawDialogScreen();
         }
+
+    }
+
+    public void drawPlayerHealth() {
+        
+        //gp.player.life = 3;
+
+        int x = gp.tileSize / 2; // Start position for health display
+        int y = gp.tileSize / 2; // Start position for health display
+        int i = 0;
+        
+        // Draw full hearts
+        while (i < gp.player.life / 2) {
+            g2.drawImage(heart_blank, x, y, null);
+            x += gp.tileSize; // Move to the next heart position
+            i++;
+        }
+        
+
+        // Reset x position for full hearts
+        x = gp.tileSize / 2;
+        y = gp.tileSize / 2;
+        i = 0;        
+
+        // Draw current hearts
+        while (i < gp.player.life) {
+            g2.drawImage(heart_half, x, y, null);
+            i++;
+            if (i < gp.player.life) {
+                g2.drawImage(heart_full, x, y, null); // Draw full heart if life is odd
+            }
+            i+=1;
+            x += gp.tileSize; // Move to the next heart position
+        }
+
 
     }
 

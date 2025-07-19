@@ -4,7 +4,6 @@ import src.main.GamePanel;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.Random;
-import java.awt.Color;
 
 import javax.imageio.ImageIO;
 import java.awt.Image;

@@ -3,13 +3,15 @@ package src.main;
 import javax.swing.JPanel;
 import src.entity.Entity;
 import src.entity.Player;
-import src.object.SuperObject;
 import src.tile.TileManager;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class GamePanel extends JPanel implements Runnable {
     // GamePanel implementation goes here
@@ -46,13 +48,15 @@ public class GamePanel extends JPanel implements Runnable {
     public src.main.UI ui = new src.main.UI(this); // UI manager for handling the user interface
     public src.main.AssetSetter assetSetter = new src.main.AssetSetter(this); // Asset setter for initializing game
                                                                               // objects
-    public src.main.CollisionChecker cChecker = new src.main.CollisionChecker(this); // Collision checker for handling
-                                                                                     // collisions
+    public src.main.CollisionChecker cChecker = new src.main.CollisionChecker(this); // Collision checker for handling collisions
+
+    public EventHandler eventHandler = new EventHandler(this); // Event handler for managing events
 
     // Entities and objects
     public Player player = new Player(this, keyHandler); // Player entity
-    public SuperObject obj[] = new SuperObject[10]; // Array to hold game objects
+    public Entity obj[] = new Entity[10]; // Array to hold game objects
     public Entity npc[] = new Entity[10]; // Array to hold NPCs (Non-Player Characters)
+    ArrayList<Entity> entityList = new ArrayList<>(); // List to hold all entities in the game
 
     // Game State
     public int gameState;
@@ -148,6 +152,12 @@ public class GamePanel extends JPanel implements Runnable {
                     npc[i].update(); // Update each NPC
                 }
             }
+            // Update objects (for animations like boots, chests)
+            for (int i = 0; i < obj.length; i++) {
+                if (obj[i] != null) {
+                    obj[i].update(); // Update each object
+                }
+            }
         } else if (gameState == dialogState) {
             // During dialog, still update animations but not player movement
             tileManager.update(); // Keep water animations going
@@ -158,6 +168,12 @@ public class GamePanel extends JPanel implements Runnable {
                     if (npc[i] instanceof src.entity.NPC_OldMan) {
                         ((src.entity.NPC_OldMan) npc[i]).updateAnimation();
                     }
+                }
+            }
+            // Update objects during dialog too (for animations)
+            for (int i = 0; i < obj.length; i++) {
+                if (obj[i] != null) {
+                    obj[i].update(); // Update each object
                 }
             }
         } else if (gameState == pauseState) {
@@ -179,21 +195,36 @@ public class GamePanel extends JPanel implements Runnable {
             // Draw game elements
             tileManager.draw(g2); // Draw the tiles
 
-            // Objects
-            for (SuperObject obj : this.obj) {
-                if (obj != null) {
-                    obj.draw(g2, this); // Draw each object
-                }
-            }
+            entityList.add(player); // Add player to entity list
 
-            // NPCs
             for (int i = 0; i < npc.length; i++) {
                 if (npc[i] != null) {
-                    npc[i].draw(g2, this); // Draw each NPC
+                    entityList.add(npc[i]); // Add each NPC to entity list
                 }
             }
 
-            player.draw(g2); // Draw the player on the screen
+            for (int i = 0; i < obj.length; i++) {
+                if (obj[i] != null) {
+                    entityList.add(obj[i]); // Add each object to entity list
+                }
+            }
+
+            // Sort
+            Collections.sort(entityList, new Comparator<Entity>() {
+                @Override
+                public int compare(Entity e1, Entity e2) {
+                    return Integer.compare(e1.worldY, e2.worldY);
+                }
+            });
+
+            // Draw all entities in sorted order
+            for (Entity entity : entityList) {
+                if (entity != null) {
+                    entity.draw(g2, this); // Draw each entity
+                }
+            }
+            // Empty the entity list for the next frame
+            entityList.clear(); // Clear all references properly
 
             // UI
             ui.draw(g2); // Draw the user interface
@@ -203,21 +234,36 @@ public class GamePanel extends JPanel implements Runnable {
             // Draw game elements
             tileManager.draw(g2); // Draw the tiles
 
-            // Objects
-            for (SuperObject obj : this.obj) {
-                if (obj != null) {
-                    obj.draw(g2, this); // Draw each object
-                }
-            }
+            entityList.add(player); // Add player to entity list
 
-            // NPCs
             for (int i = 0; i < npc.length; i++) {
                 if (npc[i] != null) {
-                    npc[i].draw(g2, this); // Draw each NPC
+                    entityList.add(npc[i]); // Add each NPC to entity list
                 }
             }
 
-            player.draw(g2); // Draw the player on the screen
+            for (int i = 0; i < obj.length; i++) {
+                if (obj[i] != null) {
+                    entityList.add(obj[i]); // Add each object to entity list
+                }
+            }
+
+            // Sort
+            Collections.sort(entityList, new Comparator<Entity>() {
+                @Override
+                public int compare(Entity e1, Entity e2) {
+                    return Integer.compare(e1.worldY, e2.worldY);
+                }
+            });
+
+            // Draw all entities in sorted order
+            for (Entity entity : entityList) {
+                if (entity != null) {
+                    entity.draw(g2, this); // Draw each entity
+                }
+            }
+            // Empty the entity list for the next frame
+            entityList.clear(); // Clear all references properly
 
             // UI (includes dialog box)
             ui.draw(g2); // Draw the user interface with dialog
@@ -227,21 +273,36 @@ public class GamePanel extends JPanel implements Runnable {
             // Draw game elements
             tileManager.draw(g2); // Draw the tiles
 
-            // Objects
-            for (SuperObject obj : this.obj) {
-                if (obj != null) {
-                    obj.draw(g2, this); // Draw each object
-                }
-            }
+            entityList.add(player); // Add player to entity list
 
-            // NPCs
             for (int i = 0; i < npc.length; i++) {
                 if (npc[i] != null) {
-                    npc[i].draw(g2, this); // Draw each NPC
+                    entityList.add(npc[i]); // Add each NPC to entity list
                 }
             }
 
-            player.draw(g2); // Draw the player on the screen
+            for (int i = 0; i < obj.length; i++) {
+                if (obj[i] != null) {
+                    entityList.add(obj[i]); // Add each object to entity list
+                }
+            }
+
+            // Sort
+            Collections.sort(entityList, new Comparator<Entity>() {
+                @Override
+                public int compare(Entity e1, Entity e2) {
+                    return Integer.compare(e1.worldY, e2.worldY);
+                }
+            });
+
+            // Draw all entities in sorted order
+            for (Entity entity : entityList) {
+                if (entity != null) {
+                    entity.draw(g2, this); // Draw each entity
+                }
+            }
+            // Empty the entity list for the next frame
+            entityList.clear(); // Clear all references properly
 
             // UI (includes pause screen)
             ui.draw(g2); // Draw the user interface with pause overlay

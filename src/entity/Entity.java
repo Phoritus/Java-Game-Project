@@ -4,7 +4,10 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 
+import javax.imageio.ImageIO;
+
 import src.main.GamePanel;
+import src.main.UtilityTool;
 
 public class Entity {
     GamePanel gp; // Reference to the GamePanel for accessing game state
@@ -13,7 +16,12 @@ public class Entity {
     public int speed; // Speed of the entity
 
     public BufferedImage up1, up2, down1, down2, left1, left2, right1, right2; // Images for animations
-    public String direction; // Direction of the entity
+    public String direction = "down"; // Direction of the entity
+    public BufferedImage image, image2, image3; // Images for the entity
+    
+    public BufferedImage[] animationFrames; // Array for animation frames
+    public String name;
+    public boolean collision = false;
 
     public int spriteCounter = 0; // Counter for animation frames
     public int spriteNum = 1; // Current sprite number for animation
@@ -30,6 +38,10 @@ public class Entity {
     public int actionLockCounter = 0; // Counter to lock actions for a certain period
     String dialogues[] = new String[20]; // Array to hold dialogue strings
     int dialogueIndex = 0; // Current dialogue index
+
+    // Character status
+    public int maxLife;
+    public int life;
 
     public void setAction() {}
 
@@ -105,6 +117,7 @@ public class Entity {
             }
         }
     }
+
 
     public Entity(GamePanel gp) {
         this.gp = gp;
@@ -186,5 +199,19 @@ public class Entity {
 
     public void draw(Graphics2D g2) {
         draw(g2, this.gp);
+    }
+
+    public BufferedImage setup(String imagePath) {
+
+        UtilityTool uTool = new UtilityTool();
+        BufferedImage image = null;
+        try {
+            image = ImageIO.read(getClass().getResourceAsStream(imagePath));
+            // Scale the image to the tile size
+            image = uTool.scaleImage(image, gp.tileSize, gp.tileSize);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return image;
     }
 }

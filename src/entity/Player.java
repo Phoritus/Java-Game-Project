@@ -43,6 +43,10 @@ public class Player extends Entity {
         worldY = gp.tileSize * 22; // Initial Y position - center of 50x50 map
         speed = 4; // Speed of player movement - fixed at 4
         direction = "down"; // Default direction
+
+        // Player status
+        maxLife = 6; // Maximum life points
+        life = maxLife; // Start with full life
     }
 
     public void interctNPC(int index) {
@@ -138,20 +142,29 @@ public class Player extends Entity {
             int objIndex = gp.cChecker.checkObject(this, true);
             pickUpObject(objIndex);
 
+            //Check Event
+            gp.eventHandler.checkEvent();
+
             // Check NPC collision
             int npcIndex = gp.cChecker.checkEntity(this, gp.npc);
             interctNPC(npcIndex);
 
+            
+
             // Only move if there's no collision
             if (!collisionOn) {
+                
+
                 updatePosition();
             }
 
+            
             updateMovementAnimation();
             resetIdleAnimation();
         } else {
             handleIdleState();
         }
+        
     }
     
     private void updatePosition() {
@@ -197,6 +210,10 @@ public class Player extends Entity {
     }
 
     public void draw(Graphics2D g2) {
+        draw(g2, gp); // Call the parent method with GamePanel parameter
+    }
+    
+    public void draw(Graphics2D g2, GamePanel gp) {
         BufferedImage image = null;
 
         // Get current frame index based on direction and animation state

@@ -6,7 +6,7 @@ import java.awt.event.KeyListener;
 public class KeyHandler implements KeyListener {
     // KeyHandler implementation goes here
     // This class will handle key events for the game
-    public boolean upPressed, downPressed, leftPressed, rightPressed, enterPressed;
+    public boolean upPressed, downPressed, leftPressed, rightPressed, enterPressed, fPressed, tPressed;
     GamePanel gp; // Reference to GamePanel
 
     @Override
@@ -70,8 +70,12 @@ public class KeyHandler implements KeyListener {
                 System.out.println("P key pressed! Current state: " + gp.gameState);
                 gp.gameState = (gp.gameState == gp.playState) ? gp.pauseState : gp.playState; // Toggle between play and pause
             } else if (keyCode == KeyEvent.VK_F) {
-                // Handle F key for dialogue or other actions
-                enterPressed = true;
+                // Handle F key for healing and other actions
+                enterPressed = true; // Set enterPressed to true for dialogue or other actions
+                fPressed = true;
+            } else if (keyCode == KeyEvent.VK_T) {
+                // Handle T key for teleport
+                tPressed = true;
             }
             
         }
@@ -115,6 +119,10 @@ public class KeyHandler implements KeyListener {
             leftPressed = false;
         } else if (keyCode == KeyEvent.VK_D) {
             rightPressed = false;
+        } else if (keyCode == KeyEvent.VK_F) {
+            fPressed = false; // Reset F key state
+        } else if (keyCode == KeyEvent.VK_T) {
+            tPressed = false; // Reset T key state
         }
     }
 

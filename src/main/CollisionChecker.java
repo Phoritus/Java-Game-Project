@@ -124,7 +124,7 @@ public class CollisionChecker {
                 entity.solidArea.x = entity.solidAreaDefaultX; // Reset solid area position
                 entity.solidArea.y = entity.solidAreaDefaultY; // Reset solid area position
                 gp.obj[i].solidArea.x = gp.obj[i].solidAreaDefaultX; // Reset object's solid area position
-                gp.obj[i].solidArea.y = gp.obj[i].solidAreaDefaultY; //
+                gp.obj[i].solidArea.y = gp.obj[i].solidAreaDefaultY;
             }
         }
         return index; // Return the index of the collided object or -1 if none

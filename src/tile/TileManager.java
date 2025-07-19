@@ -106,6 +106,8 @@ public class TileManager {
             setup(40, "/res/tiles/wall.png", true);
             setup(41, "/res/tiles/tree.png", true);
             setup(42, "/res/tiles/water00.png", true);
+            setup(43, "/res/tiles/lava_floor.png", false);
+            setup(44, "/res/tiles/right.png", false);
 
         } catch (Exception e) {
             e.printStackTrace(); // Handle exceptions, such as file not found
