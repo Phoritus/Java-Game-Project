@@ -8,6 +8,7 @@ public class KeyHandler implements KeyListener {
     // This class will handle key events for the game
     public boolean upPressed, downPressed, leftPressed, rightPressed, enterPressed, fPressed, tPressed;
     GamePanel gp; // Reference to GamePanel
+    boolean showDebugText = false;
 
     @Override
     public void keyTyped(KeyEvent e) {
@@ -52,7 +53,7 @@ public class KeyHandler implements KeyListener {
             }
         }
 
-    if (gp.gameState == gp.playState || gp.gameState == gp.pauseState) {
+        if (gp.gameState == gp.playState || gp.gameState == gp.pauseState) {
             if (keyCode == KeyEvent.VK_W) {
                 // Move player up
                 upPressed = true;
@@ -68,7 +69,8 @@ public class KeyHandler implements KeyListener {
             } else if (keyCode == KeyEvent.VK_P) {
                 // Toggle pause state
                 System.out.println("P key pressed! Current state: " + gp.gameState);
-                gp.gameState = (gp.gameState == gp.playState) ? gp.pauseState : gp.playState; // Toggle between play and pause
+                gp.gameState = (gp.gameState == gp.playState) ? gp.pauseState : gp.playState; // Toggle between play and
+                                                                                              // pause
             } else if (keyCode == KeyEvent.VK_F) {
                 // Handle F key for healing and other actions
                 enterPressed = true; // Set enterPressed to true for dialogue or other actions
@@ -77,21 +79,53 @@ public class KeyHandler implements KeyListener {
                 // Handle T key for teleport
                 tPressed = true;
             } else if (keyCode == KeyEvent.VK_C) {
-        gp.gameState = gp.characterState; // Enter character customization
-        return; // Prevent this same key event from immediately toggling back
+                // Enter character screen; navigation handled below when in characterState
+                gp.gameState = gp.characterState;
+                return;
             }
-            
+
+        }
+
+        // Character screen navigation and exit
+        if (gp.gameState == gp.characterState) {
+            if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
+                if (gp.ui.slotRow != 0) {
+                    gp.ui.slotRow--;
+                    gp.playSoundEffect(9);
+                }
+            } else if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
+                if (gp.ui.slotRow != 3) {
+                    gp.ui.slotRow++;
+                    gp.playSoundEffect(9);
+                }
+            } else if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
+                if (gp.ui.slotCol != 0) {
+                    gp.ui.slotCol--;
+                    gp.playSoundEffect(9);
+                }
+            } else if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
+                if (gp.ui.slotCol != 4) {
+                    gp.ui.slotCol++;
+                    gp.playSoundEffect(9);
+                }
+            } else if (keyCode == KeyEvent.VK_C || keyCode == KeyEvent.VK_ESCAPE) {
+                // Exit character screen
+                gp.gameState = gp.playState;
+                return;
+            }
+            // Consume input in character screen so it doesn't affect gameplay
+            return;
         }
 
         // Pause and music controls
-         if (keyCode == KeyEvent.VK_M) {
+        if (keyCode == KeyEvent.VK_M) {
             // Toggle music on/off
             gp.toggleMusic();
             System.out.println("Music toggled: " + (gp.musicOn ? "ON" : "OFF"));
         }
 
         // Dialogue control
-         if (gp.gameState == gp.dialogState) {
+        if (gp.gameState == gp.dialogState) {
             if (keyCode == KeyEvent.VK_F) {
                 gp.gameState = gp.playState; // Exit dialogue state
             } else if (keyCode == KeyEvent.VK_ESCAPE) {
@@ -100,18 +134,19 @@ public class KeyHandler implements KeyListener {
             }
         }
 
-        // Character customization toggle (exit)
-        if (gp.gameState == gp.characterState && keyCode == KeyEvent.VK_C) {
-            gp.gameState = gp.playState; // Exit character customization
-            return;
-        }
+    // Character customization toggle (exit) handled above in characterState block
 
         // Debugging output
         if (keyCode == KeyEvent.VK_F1) {
-            System.out.println("F1 pressed: Debugging mode activated");
-        } else if (keyCode == KeyEvent.VK_ESCAPE) {
-            System.out.println("Escape pressed: Exiting game");
-            System.exit(0); // Exit the game on Escape key
+            if (!showDebugText) {
+                showDebugText = true;
+            } else if (showDebugText) {
+                showDebugText = false;
+            }
+        }
+
+        if (keyCode == KeyEvent.VK_F2) {
+            gp.tileManager.loadMap("/res/maps/worldV2.txt");
         }
 
     }

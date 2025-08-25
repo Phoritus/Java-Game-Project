@@ -8,6 +8,7 @@ import src.tile.TileManager;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.MouseAdapter;
@@ -51,7 +52,8 @@ public class GamePanel extends JPanel implements Runnable {
     public src.main.UI ui = new src.main.UI(this); // UI manager for handling the user interface
     public src.main.AssetSetter assetSetter = new src.main.AssetSetter(this); // Asset setter for initializing game
                                                                               // objects
-    public src.main.CollisionChecker cChecker = new src.main.CollisionChecker(this); // Collision checker for handling collisions
+    public src.main.CollisionChecker cChecker = new src.main.CollisionChecker(this); // Collision checker for handling
+                                                                                     // collisions
 
     public EventHandler eventHandler = new EventHandler(this); // Event handler for managing events
 
@@ -166,7 +168,7 @@ public class GamePanel extends JPanel implements Runnable {
                 e.printStackTrace();
             }
 
-    }
+        }
     }
 
     public void update() {
@@ -188,9 +190,11 @@ public class GamePanel extends JPanel implements Runnable {
             // Update monsters
             for (int i = 0; i < monster.length; i++) {
                 Entity m = monster[i];
-                if (m == null) continue;
+                if (m == null)
+                    continue;
                 if (m.dying) {
-                    // Let dying entities advance their fade via draw(); just run a short timer here if desired
+                    // Let dying entities advance their fade via draw(); just run a short timer here
+                    // if desired
                     m.dyingCounter++;
                     if (m.dyingCounter > 40) { // remove after fade window (~2/3s)
                         monster[i] = null;
@@ -332,7 +336,7 @@ public class GamePanel extends JPanel implements Runnable {
             // UI (includes dialog box)
             ui.draw(g2); // Draw the user interface with dialog
         }
-    // Pause state - draw game world + pause UI
+        // Pause state - draw game world + pause UI
         else if (gameState == pauseState) {
             // Draw game elements
             tileManager.draw(g2); // Draw the tiles
@@ -378,13 +382,16 @@ public class GamePanel extends JPanel implements Runnable {
 
             entityList.add(player);
             for (int i = 0; i < npc.length; i++) {
-                if (npc[i] != null) entityList.add(npc[i]);
+                if (npc[i] != null)
+                    entityList.add(npc[i]);
             }
             for (int i = 0; i < obj.length; i++) {
-                if (obj[i] != null) entityList.add(obj[i]);
+                if (obj[i] != null)
+                    entityList.add(obj[i]);
             }
             for (int i = 0; i < monster.length; i++) {
-                if (monster[i] != null) entityList.add(monster[i]);
+                if (monster[i] != null)
+                    entityList.add(monster[i]);
             }
 
             Collections.sort(entityList, new Comparator<Entity>() {
@@ -394,12 +401,32 @@ public class GamePanel extends JPanel implements Runnable {
                 }
             });
             for (Entity entity : entityList) {
-                if (entity != null) entity.draw(g2, this);
+                if (entity != null)
+                    entity.draw(g2, this);
             }
             entityList.clear();
 
             // Draw the character customization UI frame
             ui.draw(g2);
+        }
+
+        if (keyHandler.showDebugText) {
+
+            g2.setFont(new Font("Arial", Font.PLAIN, 12));
+            g2.setColor(Color.WHITE);
+            int x = 10;
+            int y = 400;
+            int lineHeight = 20;
+
+            g2.drawString("WorldX: " + player.worldX, x, y);
+            y += lineHeight;
+            g2.drawString("WorldY: " + player.worldY, x, y);
+            y += lineHeight;
+            g2.drawString("Col: " + (player.worldX + player.solidArea.x) / tileSize, x, y);
+            y += lineHeight;
+            g2.drawString("Row: " + (player.worldY + player.solidArea.y) / tileSize, x, y);
+            y += lineHeight;
+
         }
 
         g2.dispose(); // Dispose of the graphics context

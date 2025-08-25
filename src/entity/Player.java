@@ -8,9 +8,12 @@ import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Composite;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+
 import javax.imageio.ImageIO;
 import java.awt.RenderingHints;
 import src.main.UtilityTool;
+import src.object.OBJ_Key;
 import src.object.OBJ_Normal_Sword;
 import src.object.OBJ_Premium_Shield;
 
@@ -27,6 +30,9 @@ public class Player extends Entity {
     public int idleCounter = 0;
     public int idleFrame = 1;
     private int lastFacingDirIndex = 1; // 0=up,1=down,2=left,3=right
+    public ArrayList<Entity> inventory = new ArrayList<>();
+    public final int inventorySize = 20; // Maximum inventory slots
+
 
     // Attack animation state
     public BufferedImage[][] attackImages = new BufferedImage[4][4]; // [up,down,left,right][frame]
@@ -58,6 +64,7 @@ public class Player extends Entity {
         setDefaultValues(); // Set initial position and speed
         getPlayerImage(); // Load player images
         getAttackImage(); // Load attack images
+        setItems(); // Initialize inventory items
     }
 
     public void setDefaultValues() {
@@ -68,7 +75,7 @@ public class Player extends Entity {
 
         // Player status
         level = 1;
-        maxLife = 10; // Maximum life points
+        maxLife = 6; // Maximum life points
         life = maxLife; // Start with full life
         strength = 1; // Affects attack power
         dexterity = 1; // More Dexterity, less damage taken
@@ -79,6 +86,13 @@ public class Player extends Entity {
         currentShield = new OBJ_Premium_Shield(gp);
         attack = getAttack(); // Calculate initial attack value
         defense = getDefense(); // Calculate initial defense value
+    }
+
+    public void setItems() {
+        inventory.add(currentWeapon);
+        inventory.add(currentShield);
+        inventory.add(new OBJ_Key(gp));
+        inventory.add(new OBJ_Key(gp));
     }
 
     public int getAttack() {

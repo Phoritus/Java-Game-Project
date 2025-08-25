@@ -9,5 +9,6 @@ public class OBJ_Key extends Entity {
         super(gp);
         name = "Key";        
         down1 = setup("/res/objects/key/keys_1_1.png");
+        description = "[" + name + "]\nA small key that\ncan open locked doors.";
     }
 }

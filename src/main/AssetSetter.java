@@ -2,6 +2,7 @@ package src.main;
 
 import src.entity.NPC_OldMan;
 import src.monster.MonBlueSlime;
+import src.object.OBJ_Boot;
 
 public class AssetSetter {
     
@@ -12,7 +13,9 @@ public class AssetSetter {
     }
 
     public void setObject() {
-        
+        gp.obj[0] = new OBJ_Boot(gp);
+        gp.obj[0].worldX = gp.tileSize * 25; // Position the boot in the world
+        gp.obj[0].worldY = gp.tileSize * 19; // Position the boot in the world
     }
 
     public void setNPC() {

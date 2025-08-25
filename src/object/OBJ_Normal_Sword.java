@@ -9,5 +9,6 @@ public class OBJ_Normal_Sword extends Entity {
         name = "Normal Sword";
         down1 = setup("/res/objects/sword.png");
         attackValue = 4;
-    }
+        description = "[" + name + "]\nA standard sword.\nAttack +" + attackValue;
+     }
 }

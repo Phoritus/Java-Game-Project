@@ -67,6 +67,7 @@ public class Entity {
     // ITEM Attributes
     public int attackValue;
     public int defenseValue;
+    public String description = "";
 
     public void setAction() {}
     public void damageReaction() {}
