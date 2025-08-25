@@ -1,6 +1,7 @@
 package src.main;
 
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import src.entity.Entity;
 import src.entity.Player;
 import src.tile.TileManager;
@@ -9,6 +10,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -56,6 +59,7 @@ public class GamePanel extends JPanel implements Runnable {
     public Player player = new Player(this, keyHandler); // Player entity
     public Entity obj[] = new Entity[10]; // Array to hold game objects
     public Entity npc[] = new Entity[10]; // Array to hold NPCs (Non-Player Characters)
+    public Entity monster[] = new Entity[20]; // Array to hold monsters
     ArrayList<Entity> entityList = new ArrayList<>(); // List to hold all entities in the game
 
     // Game State
@@ -64,6 +68,7 @@ public class GamePanel extends JPanel implements Runnable {
     public final int playState = 1; // Game is in play state
     public final int pauseState = 2; // Game is paused
     public final int dialogState = 3; // Dialog state for NPC interactions
+    public final int characterState = 4; // Character customization state
 
     // Sound State
     public boolean musicOn = true; // Track if music is on or off
@@ -76,12 +81,24 @@ public class GamePanel extends JPanel implements Runnable {
         // Additional initialization code can go here
         this.addKeyListener(keyHandler); // Add key listener for input handling
         this.setFocusable(true); // Make the panel focusable to receive key events
+        // Mouse: left-click to attack
+        this.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    if (gameState == playState) {
+                        player.startAttack();
+                    }
+                }
+            }
+        });
 
     }
 
     public void setupGame() {
         assetSetter.setObject(); // Set up game objects
         assetSetter.setNPC(); // Set up NPCs
+        assetSetter.setMonster(); // Set up monsters
         // playMusic(0); // Play background music
         gameState = titleState; // Set initial game state to title screen
     }
@@ -131,6 +148,16 @@ public class GamePanel extends JPanel implements Runnable {
                     e.printStackTrace();
                 }
                 continue; // Skip the normal sleep at the bottom
+            } else if (gameState == characterState) {
+                // Character customization: treat like pause (no updates), but repaint for UI
+                repaint();
+                delta = 0;
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                continue;
             }
 
             try {
@@ -139,7 +166,7 @@ public class GamePanel extends JPanel implements Runnable {
                 e.printStackTrace();
             }
 
-        }
+    }
     }
 
     public void update() {
@@ -158,6 +185,23 @@ public class GamePanel extends JPanel implements Runnable {
                     obj[i].update(); // Update each object
                 }
             }
+            // Update monsters
+            for (int i = 0; i < monster.length; i++) {
+                Entity m = monster[i];
+                if (m == null) continue;
+                if (m.dying) {
+                    // Let dying entities advance their fade via draw(); just run a short timer here if desired
+                    m.dyingCounter++;
+                    if (m.dyingCounter > 40) { // remove after fade window (~2/3s)
+                        monster[i] = null;
+                    }
+                    continue;
+                }
+                if (m.alive) {
+                    m.update();
+                }
+            }
+
         } else if (gameState == dialogState) {
             // During dialog, still update animations but not player movement
             tileManager.update(); // Keep water animations going
@@ -176,6 +220,14 @@ public class GamePanel extends JPanel implements Runnable {
                     obj[i].update(); // Update each object
                 }
             }
+
+            // Update monsters during dialog too (for animations)
+            for (int i = 0; i < monster.length; i++) {
+                if (monster[i] != null) {
+                    monster[i].update(); // Update each monster
+                }
+            }
+
         } else if (gameState == pauseState) {
             // Handle pause state logic if needed
         }
@@ -206,6 +258,12 @@ public class GamePanel extends JPanel implements Runnable {
             for (int i = 0; i < obj.length; i++) {
                 if (obj[i] != null) {
                     entityList.add(obj[i]); // Add each object to entity list
+                }
+            }
+
+            for (int i = 0; i < monster.length; i++) {
+                if (monster[i] != null) {
+                    entityList.add(monster[i]); // Add each monster to entity list
                 }
             }
 
@@ -248,6 +306,12 @@ public class GamePanel extends JPanel implements Runnable {
                 }
             }
 
+            for (int i = 0; i < monster.length; i++) {
+                if (monster[i] != null) {
+                    entityList.add(monster[i]); // Add each monster to entity list
+                }
+            }
+
             // Sort
             Collections.sort(entityList, new Comparator<Entity>() {
                 @Override
@@ -268,7 +332,7 @@ public class GamePanel extends JPanel implements Runnable {
             // UI (includes dialog box)
             ui.draw(g2); // Draw the user interface with dialog
         }
-        // Pause state - draw game world + pause UI
+    // Pause state - draw game world + pause UI
         else if (gameState == pauseState) {
             // Draw game elements
             tileManager.draw(g2); // Draw the tiles
@@ -306,6 +370,36 @@ public class GamePanel extends JPanel implements Runnable {
 
             // UI (includes pause screen)
             ui.draw(g2); // Draw the user interface with pause overlay
+        }
+        // Character customization state - draw game world + character UI
+        else if (gameState == characterState) {
+            // Draw game elements as background
+            tileManager.draw(g2);
+
+            entityList.add(player);
+            for (int i = 0; i < npc.length; i++) {
+                if (npc[i] != null) entityList.add(npc[i]);
+            }
+            for (int i = 0; i < obj.length; i++) {
+                if (obj[i] != null) entityList.add(obj[i]);
+            }
+            for (int i = 0; i < monster.length; i++) {
+                if (monster[i] != null) entityList.add(monster[i]);
+            }
+
+            Collections.sort(entityList, new Comparator<Entity>() {
+                @Override
+                public int compare(Entity e1, Entity e2) {
+                    return Integer.compare(e1.worldY, e2.worldY);
+                }
+            });
+            for (Entity entity : entityList) {
+                if (entity != null) entity.draw(g2, this);
+            }
+            entityList.clear();
+
+            // Draw the character customization UI frame
+            ui.draw(g2);
         }
 
         g2.dispose(); // Dispose of the graphics context

@@ -1,6 +1,8 @@
 package src.entity;
 
 import java.awt.Graphics2D;
+import java.awt.AlphaComposite;
+import java.awt.Composite;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 
@@ -13,20 +15,27 @@ public class Entity {
     GamePanel gp; // Reference to the GamePanel for accessing game state
     public int worldX, worldY; // World coordinates of the entity
     public int screenX, screenY; // Screen coordinates of the entity
-    public int speed; // Speed of the entity
 
     public BufferedImage up1, up2, down1, down2, left1, left2, right1, right2; // Images for animations
     public String direction = "down"; // Direction of the entity
     public BufferedImage image, image2, image3; // Images for the entity
-    
+
+
     public BufferedImage[] animationFrames; // Array for animation frames
-    public String name;
     public boolean collision = false;
+    public boolean invincible = false; // New variable for invincibility
+    public int invincibleCounter = 0; // Counter for invincibility frames
+    boolean attacking = false; // New variable for attack state
+    public boolean alive = true;
+    public boolean dying = false; // New variable for death state
+    public int dyingCounter = 0; // Counter for dying frames
 
     public int spriteCounter = 0; // Counter for animation frames
     public int spriteNum = 1; // Current sprite number for animation
     public Rectangle solidArea = new Rectangle(18, 50, 13, 13); // Collision area for the entity
+    public Rectangle attackArea = new Rectangle(0, 0, 0, 0); // Area for attack collision
     public boolean collisionOn = false; // Flag for collision detection
+    public int type; // 0 = Player, 1 = NPC, 2 = Monster
 
     public int solidAreaDefaultX, solidAreaDefaultY; // Default position of the solid area
 
@@ -39,11 +48,28 @@ public class Entity {
     String dialogues[] = new String[20]; // Array to hold dialogue strings
     int dialogueIndex = 0; // Current dialogue index
 
-    // Character status
+    // Character attributes
+    public String name;
     public int maxLife;
     public int life;
+    public int speed; // Speed of the entity
+    public int level;
+    public int strength;
+    public int dexterity;
+    public int attack;
+    public int defense;
+    public int exp;
+    public int nextLevelExp;
+    public int coin;
+    public Entity currentWeapon;
+    public Entity currentShield;
+
+    // ITEM Attributes
+    public int attackValue;
+    public int defenseValue;
 
     public void setAction() {}
+    public void damageReaction() {}
 
     public void speak() {
         // NPC should face OPPOSITE direction of player (face towards player)
@@ -68,6 +94,23 @@ public class Entity {
 
         collisionOn = false; // Reset collision flag before moving
         gp.cChecker.checkTile(this); // Check for tile collisions
+        gp.cChecker.checkObject(this, false); // Check for object collisions
+        gp.cChecker.checkEntity(this, gp.monster); // Check for monster collisions
+        boolean contactPlayer = gp.cChecker.checkPlayer(this);
+
+        // Monster damages player on contact with invincibility cooldown
+        if (this.type == 2 && contactPlayer && this.alive && !this.dying) {
+            if (!gp.player.invincible) {
+                // Play received-damage SFX (index 7), not swing
+                gp.playSoundEffect(7);
+                int damage = attack - gp.player.defense;
+                if (damage < 0)
+                    damage = 0;
+                gp.player.life -= damage;
+                gp.player.invincible = true; // start i-frames
+                gp.player.invincibleCounter = 0;
+            }
+        }
 
         // Check for object collisions only if no tile collision
         if (!collisionOn) {
@@ -81,8 +124,8 @@ public class Entity {
         
         // Check for player collision (prevent NPC from walking through player)
         if (!collisionOn) {
-            int playerIndex = gp.cChecker.checkPlayer(this); // Check if NPC hits player
-            if (playerIndex != -1) {
+            boolean playerCollision = gp.cChecker.checkPlayer(this); // Check if NPC hits player
+            if (playerCollision) {
                 collisionOn = true; // Block movement if hitting player
             }
         }
@@ -116,6 +159,49 @@ public class Entity {
                 frameIndex = 0; // Reset to first frame
             }
         }
+
+        // Handle player's invincibility countdown (i-frames)
+        if (gp.player != null && gp.player.invincible) {
+            gp.player.invincibleCounter++;
+            if (gp.player.invincibleCounter > 60) { // ~1 second at 60 FPS
+                gp.player.invincible = false;
+                gp.player.invincibleCounter = 0;
+            }
+        }
+
+        // Handle this entity's own invincibility (e.g., monsters)
+        if (this != gp.player && this.invincible) {
+            this.invincibleCounter++;
+            if (this.invincibleCounter > 30) { // half a second of i-frames
+                this.invincible = false;
+                this.invincibleCounter = 0;
+            }
+        }
+        // Note: Dying fade is applied during draw(), not here (no Graphics2D in update()).
+    }
+
+    public void dyingAnimation(Graphics2D g2) {
+        dyingCounter++;
+
+        int i = 5;
+        if (dyingCounter <= i) {changeAlpha(g2, 0f);}
+        if (dyingCounter > i && dyingCounter <= i * 2) {changeAlpha(g2, 0.1f);}
+        if (dyingCounter > i * 2 && dyingCounter <= i * 3) {changeAlpha(g2, 0.2f);}
+        if (dyingCounter > i * 3 && dyingCounter <= i * 4) {changeAlpha(g2, 0.3f);}
+        if (dyingCounter > i * 4 && dyingCounter <= i * 5) {changeAlpha(g2, 0.4f);}
+        if (dyingCounter > i * 5 && dyingCounter <= i * 6) {changeAlpha(g2, 0.5f);}
+        if (dyingCounter > i * 6 && dyingCounter <= i * 7) {changeAlpha(g2, 0.6f);}
+        if (dyingCounter > i * 7 && dyingCounter <= i * 8) {changeAlpha(g2, 0.7f);}
+
+        if (dyingCounter > i * 8) { // After 30 frames, remove the entity
+            dying = false;
+            alive = false;
+        }
+    }
+
+    public void changeAlpha(Graphics2D g2, float alphaValue) {
+        AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alphaValue);
+        g2.setComposite(ac);
     }
 
 
@@ -190,9 +276,17 @@ public class Entity {
                     break;
             }
 
-            // Draw the entity image
+            // Draw the entity image with dying/invincibility feedback
             if (image != null) {
+                Composite old = g2.getComposite();
+                // Apply dying fade first (takes precedence over invincibility)
+                if (dying) {
+                    dyingAnimation(g2); // sets alpha based on dyingCounter progression
+                } else if (this != gp.player && this.invincible) {
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+                }
                 g2.drawImage(image, screenX, screenY, gp.tileSize, gp.tileSize, null);
+                g2.setComposite(old);
             }
         }
     }
@@ -213,5 +307,9 @@ public class Entity {
             e.printStackTrace();
         }
         return image;
+    }
+
+    public void getImage() {
+        throw new UnsupportedOperationException("Unimplemented method 'getImage'");
     }
 }

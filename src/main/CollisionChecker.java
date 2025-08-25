@@ -1,6 +1,7 @@
 package src.main;
 
 import src.entity.Entity;
+import java.awt.Rectangle;
 
 public class CollisionChecker {
 
@@ -72,55 +73,20 @@ public class CollisionChecker {
                 gp.obj[i].solidArea.y = gp.obj[i].worldY + gp.obj[i].solidArea.y;
 
                 switch (entity.direction) {
-                    case "up":
-                        entity.solidArea.y -= entity.speed;
-                        if (entity.solidArea.intersects(gp.obj[i].solidArea)) {
-                            if (gp.obj[i].collision) {
-                                entity.collisionOn = true;
-                            }
-                            if (player) {
-                                index = i;
-                            }
-                        }
-                        break;
-                    case "down":
-                        entity.solidArea.y += entity.speed;
-                        if (entity.solidArea.intersects(gp.obj[i].solidArea)) {
-                            if (gp.obj[i].collision) {
-                                entity.collisionOn = true;
-                            }
-                            if (player) {
-                                index = i;
-                            }
-                        }
-                        break;
-                    case "left":
-                        entity.solidArea.x -= entity.speed;
-                        if (entity.solidArea.intersects(gp.obj[i].solidArea)) {
-                            if (gp.obj[i].collision) {
-                                entity.collisionOn = true;
-                            }
-                            if (player) {
-                                index = i;
-                            }
-                        }
-                        break;
-                    case "right":
-                        entity.solidArea.x += entity.speed;
-                        if (entity.solidArea.intersects(gp.obj[i].solidArea)) {
-                            if (gp.obj[i].collision) {
-                                entity.collisionOn = true;
-                            }
-                            if (player) {
-                                index = i;
-                            }
-                        }
-                        break;
-                
-                    default:
-                        break;
+                    case "up": entity.solidArea.y -= entity.speed; break;
+                    case "down": entity.solidArea.y += entity.speed; break;
+                    case "left": entity.solidArea.x -= entity.speed; break;
+                    case "right": entity.solidArea.x += entity.speed; break;
                 }
 
+                if (entity.solidArea.intersects(gp.obj[i].solidArea)) {
+                            if (gp.obj[i].collision) {
+                                entity.collisionOn = true;
+                            }
+                            if (player) {
+                                index = i;
+                            }
+                        }
                 entity.solidArea.x = entity.solidAreaDefaultX; // Reset solid area position
                 entity.solidArea.y = entity.solidAreaDefaultY; // Reset solid area position
                 gp.obj[i].solidArea.x = gp.obj[i].solidAreaDefaultX; // Reset object's solid area position
@@ -162,7 +128,9 @@ public class CollisionChecker {
 
                 // Check for collision
                 if (entity.solidArea.intersects(targetEntities[i].solidArea)) {
-                    entity.collisionOn = true;
+                    if (targetEntities[i] != entity) {
+                        entity.collisionOn = true;
+                    }
                     index = i; // Return the index of the collided entity
                 }
 
@@ -176,39 +144,85 @@ public class CollisionChecker {
         return index; // Return the index of the collided entity or -1 if none
     }
 
-    // Check collision between NPC and Player
-    public int checkPlayer(Entity entity) {
-        int index = -1; // Default return value if no collision
-        
-        if (gp.player != null && entity != gp.player) { // Make sure it's not the player checking itself
-            // Get the NPC's solid area position after potential movement
-            entity.solidArea.x = entity.worldX + entity.solidArea.x;
-            entity.solidArea.y = entity.worldY + entity.solidArea.y;
-            
-            // Predict future position based on direction and speed
-            switch (entity.direction) {
-                case "up":
-                    entity.solidArea.y -= entity.speed;
-                    break;
-                case "down":
-                    entity.solidArea.y += entity.speed;
-                    break;
-                case "left":
-                    entity.solidArea.x -= entity.speed;
-                    break;
-                case "right":
-                    entity.solidArea.x += entity.speed;
-                    break;
-            }
+    // Overlap check without predicting movement (use current positions)
+    public int checkEntityOverlap(Entity entity, Entity[] targetEntities) {
+        int index = -1;
+        for (int i = 0; i < targetEntities.length; i++) {
+            if (targetEntities[i] != null && targetEntities[i] != entity) {
+                // Use current world positions with default offsets
+                entity.solidArea.x = entity.worldX + entity.solidAreaDefaultX;
+                entity.solidArea.y = entity.worldY + entity.solidAreaDefaultY;
 
-            // Get the player's solid area
+                targetEntities[i].solidArea.x = targetEntities[i].worldX + targetEntities[i].solidAreaDefaultX;
+                targetEntities[i].solidArea.y = targetEntities[i].worldY + targetEntities[i].solidAreaDefaultY;
+
+                if (entity.solidArea.intersects(targetEntities[i].solidArea)) {
+                    index = i;
+                }
+
+                // Reset positions
+                entity.solidArea.x = entity.solidAreaDefaultX;
+                entity.solidArea.y = entity.solidAreaDefaultY;
+                targetEntities[i].solidArea.x = targetEntities[i].solidAreaDefaultX;
+                targetEntities[i].solidArea.y = targetEntities[i].solidAreaDefaultY;
+            }
+        }
+        return index;
+    }
+
+    // Nearby check: expands player's solid area by padding pixels and checks intersection
+    public int checkEntityNearby(Entity entity, Entity[] targetEntities, int padding) {
+        int index = -1;
+        // Build expanded player area without mutating entity state
+        Rectangle playerArea = new Rectangle(
+            entity.worldX + entity.solidAreaDefaultX - padding,
+            entity.worldY + entity.solidAreaDefaultY - padding,
+            entity.solidArea.width + padding * 2,
+            entity.solidArea.height + padding * 2
+        );
+
+        for (int i = 0; i < targetEntities.length; i++) {
+            if (targetEntities[i] != null && targetEntities[i] != entity) {
+                Rectangle targetArea = new Rectangle(
+                    targetEntities[i].worldX + targetEntities[i].solidAreaDefaultX,
+                    targetEntities[i].worldY + targetEntities[i].solidAreaDefaultY,
+                    targetEntities[i].solidArea.width,
+                    targetEntities[i].solidArea.height
+                );
+
+                if (playerArea.intersects(targetArea)) {
+                    index = i;
+                    break;
+                }
+            }
+        }
+        return index;
+    }
+
+    // Check collision between NPC/Monster and Player
+    public boolean checkPlayer(Entity entity) {
+        boolean contactPlayer = false;
+
+        if (gp.player != null && entity != gp.player) { // Make sure it's not the player checking itself
+            // Position rectangles in world space using default offsets
+            entity.solidArea.x = entity.worldX + entity.solidAreaDefaultX;
+            entity.solidArea.y = entity.worldY + entity.solidAreaDefaultY;
+
             gp.player.solidArea.x = gp.player.worldX + gp.player.solidAreaDefaultX;
             gp.player.solidArea.y = gp.player.worldY + gp.player.solidAreaDefaultY;
 
+            // Predict future position based on movement this frame
+            switch (entity.direction) {
+                case "up": entity.solidArea.y -= entity.speed; break;
+                case "down": entity.solidArea.y += entity.speed; break;
+                case "left": entity.solidArea.x -= entity.speed; break;
+                case "right": entity.solidArea.x += entity.speed; break;
+            }
+
             // Check for collision
             if (entity.solidArea.intersects(gp.player.solidArea)) {
-                entity.collisionOn = true;
-                index = 0; // Return 0 to indicate player collision
+                contactPlayer = true;
+                entity.collisionOn = true; // also block movement if desired
             }
 
             // Reset solid area positions
@@ -217,7 +231,7 @@ public class CollisionChecker {
             gp.player.solidArea.x = gp.player.solidAreaDefaultX;
             gp.player.solidArea.y = gp.player.solidAreaDefaultY;
         }
-        
-        return index; // Return 0 if collision with player, -1 if no collision
+
+        return contactPlayer;
     }
 }

@@ -108,6 +108,7 @@ public class EventHandler {
         if (gp.player.life > gp.player.maxLife) {
             gp.player.life = gp.player.maxLife;
         }
+        gp.assetSetter.setMonster();
     }
 
     public void teleportTo(int gameState) {

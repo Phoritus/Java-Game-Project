@@ -52,7 +52,7 @@ public class KeyHandler implements KeyListener {
             }
         }
 
-        if (gp.gameState == gp.playState || gp.gameState == gp.pauseState) {
+    if (gp.gameState == gp.playState || gp.gameState == gp.pauseState) {
             if (keyCode == KeyEvent.VK_W) {
                 // Move player up
                 upPressed = true;
@@ -76,6 +76,9 @@ public class KeyHandler implements KeyListener {
             } else if (keyCode == KeyEvent.VK_T) {
                 // Handle T key for teleport
                 tPressed = true;
+            } else if (keyCode == KeyEvent.VK_C) {
+        gp.gameState = gp.characterState; // Enter character customization
+        return; // Prevent this same key event from immediately toggling back
             }
             
         }
@@ -95,6 +98,12 @@ public class KeyHandler implements KeyListener {
                 // Exit dialogue state
                 gp.gameState = gp.playState;
             }
+        }
+
+        // Character customization toggle (exit)
+        if (gp.gameState == gp.characterState && keyCode == KeyEvent.VK_C) {
+            gp.gameState = gp.playState; // Exit character customization
+            return;
         }
 
         // Debugging output
