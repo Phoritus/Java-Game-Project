@@ -12,7 +12,7 @@ import src.main.GamePanel;
 import src.main.UtilityTool;
 
 public class Entity {
-    GamePanel gp; // Reference to the GamePanel for accessing game state
+    protected GamePanel gp; // Reference to the GamePanel for accessing game state
     public int worldX, worldY; // World coordinates of the entity
     public int screenX, screenY; // Screen coordinates of the entity
 
@@ -64,6 +64,16 @@ public class Entity {
     public Entity currentWeapon;
     public Entity currentShield;
 
+    // TYPE
+    public final int TYPE_PLAYER = 0;
+    public final int TYPE_NPC = 1;
+    public final int TYPE_MONSTER = 2;
+    public final int TYPE_SWORD = 3;
+    public final int TYPE_AXE = 4;
+    public final int TYPE_SHIELD = 5;
+    public final int TYPE_CONSUMABLE = 6;
+
+
     // ITEM Attributes
     public int attackValue;
     public int defenseValue;
@@ -90,6 +100,8 @@ public class Entity {
         }
     }
 
+    public void use(Entity entity) {}
+
     public void update() {
         setAction();
 
@@ -100,7 +112,7 @@ public class Entity {
         boolean contactPlayer = gp.cChecker.checkPlayer(this);
 
         // Monster damages player on contact with invincibility cooldown
-        if (this.type == 2 && contactPlayer && this.alive && !this.dying) {
+        if (this.type == TYPE_MONSTER && contactPlayer && this.alive && !this.dying) {
             if (!gp.player.invincible) {
                 // Play received-damage SFX (index 7), not swing
                 gp.playSoundEffect(7);

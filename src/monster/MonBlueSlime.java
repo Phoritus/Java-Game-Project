@@ -31,7 +31,7 @@ public class MonBlueSlime extends Entity {
         super(gp);
         this.gamePanel = gp;
 
-        type = 2;
+        type = TYPE_MONSTER;
         name = "Blue Slime";
         speed = baseSpeed;
         maxLife = 4;

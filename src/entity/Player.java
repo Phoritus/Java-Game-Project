@@ -33,7 +33,6 @@ public class Player extends Entity {
     public ArrayList<Entity> inventory = new ArrayList<>();
     public final int inventorySize = 20; // Maximum inventory slots
 
-
     // Attack animation state
     public BufferedImage[][] attackImages = new BufferedImage[4][4]; // [up,down,left,right][frame]
     public boolean attacking = false;
@@ -58,8 +57,8 @@ public class Player extends Entity {
         solidAreaDefaultX = solidArea.x; // Default X position of the solid area
         solidAreaDefaultY = solidArea.y; // Default Y position of the solid area
 
-        attackArea.width = 36;
-        attackArea.height = 36;
+        // attackArea.width = 36;
+        // attackArea.height = 36;
 
         setDefaultValues(); // Set initial position and speed
         getPlayerImage(); // Load player images
@@ -93,9 +92,16 @@ public class Player extends Entity {
         inventory.add(currentShield);
         inventory.add(new OBJ_Key(gp));
         inventory.add(new OBJ_Key(gp));
+        // Ensure keys in starting inventory show the default key picture in inventory
+        for (Entity it : inventory) {
+            if (it instanceof OBJ_Key) {
+                it.down1 = setup("res/objects/key/keys_1_1.png");
+            }
+        }
     }
 
     public int getAttack() {
+        attackArea = currentWeapon.attackArea;
         return attack = strength * currentWeapon.attackValue;
     }
 
@@ -144,8 +150,9 @@ public class Player extends Entity {
         int damage = attack - gp.monster[index].defense;
         if (damage < 0)
             damage = 0;
-    m.life -= damage;
-    if (m.life < 0) m.life = 0; // clamp to avoid negative HP bar
+        m.life -= damage;
+        if (m.life < 0)
+            m.life = 0; // clamp to avoid negative HP bar
         // Update hit combo (reset if too slow between hits)
         long now = System.currentTimeMillis();
         if (now - lastHitMillis > 3000) { // 3s window between hits
@@ -160,7 +167,7 @@ public class Player extends Entity {
         if (m instanceof src.monster.MonBlueSlime) {
             ((src.monster.MonBlueSlime) m).showHpBar();
         }
-    if (m.life <= 0) {
+        if (m.life <= 0) {
             // Enter dying state and stop normal updates; removal happens after fade
             gp.ui.addMessage("Killed " + m.name);
             gp.ui.addMessage("Exp +" + gp.monster[index].exp);
@@ -177,8 +184,11 @@ public class Player extends Entity {
         if (exp >= nextLevelExp) {
 
             level++;
-            nextLevelExp *= 2; // Double the experience needed for the next level 
-            maxLife += 2; strength++; dexterity++;
+            nextLevelExp *= 2; // Double the experience needed for the next level
+            maxLife += 2;
+            strength++;
+            dexterity++;
+            life = maxLife; // Restore life on level up
             attack = getAttack();
             defense = getDefense();
 
@@ -231,35 +241,66 @@ public class Player extends Entity {
     public void getAttackImage() {
         try {
             // Map: up=back, down=front, left=left, right=right
-            String[][] atkPaths = new String[][] {
-                    { // up (back)
-                            "res/player/player_atk/b_atk/b_atk1.png",
-                            "res/player/player_atk/b_atk/b_atk2.png",
-                            "res/player/player_atk/b_atk/b_atk3.png",
-                            "res/player/player_atk/b_atk/b_atk4.png"
-                    },
-                    { // down (front)
-                            "res/player/player_atk/f_atk/f_atk1.png",
-                            "res/player/player_atk/f_atk/f_atk2.png",
-                            "res/player/player_atk/f_atk/f_atk3.png",
-                            "res/player/player_atk/f_atk/f_atk4.png"
-                    },
-                    { // left
-                            "res/player/player_atk/l_atk/l_atk1.png",
-                            "res/player/player_atk/l_atk/l_atk2.png",
-                            "res/player/player_atk/l_atk/l_atk3.png",
-                            "res/player/player_atk/l_atk/l_atk4.png"
-                    },
-                    { // right
-                            "res/player/player_atk/r_atk/r_atk1.png",
-                            "res/player/player_atk/r_atk/r_atk2.png",
-                            "res/player/player_atk/r_atk/r_atk3.png",
-                            "res/player/player_atk/r_atk/r_atk4.png"
-                    }
-            };
+            String[][] atkPaths;
+            if (currentWeapon.type == TYPE_SWORD) {
+                atkPaths = new String[][] {
+                        { // up (back)
+                                "res/player/player_atk/b_atk/b_atk1.png",
+                                "res/player/player_atk/b_atk/b_atk2.png",
+                                "res/player/player_atk/b_atk/b_atk3.png",
+                                "res/player/player_atk/b_atk/b_atk4.png"
+                        },
+                        { // down (front)
+                                "res/player/player_atk/f_atk/f_atk1.png",
+                                "res/player/player_atk/f_atk/f_atk2.png",
+                                "res/player/player_atk/f_atk/f_atk3.png",
+                                "res/player/player_atk/f_atk/f_atk4.png"
+                        },
+                        { // left
+                                "res/player/player_atk/l_atk/l_atk1.png",
+                                "res/player/player_atk/l_atk/l_atk2.png",
+                                "res/player/player_atk/l_atk/l_atk3.png",
+                                "res/player/player_atk/l_atk/l_atk4.png"
+                        },
+                        { // right
+                                "res/player/player_atk/r_atk/r_atk1.png",
+                                "res/player/player_atk/r_atk/r_atk2.png",
+                                "res/player/player_atk/r_atk/r_atk3.png",
+                                "res/player/player_atk/r_atk/r_atk4.png"
+                        }
+                };
+            } else {
+                atkPaths = new String[][] {
+                        { // up (back)
+                                "res/player/player_axe/b_atk/b_atk0.png",
+                                "res/player/player_axe/b_atk/b_atk1.png",
+                                "res/player/player_axe/b_atk/b_atk2.png",
+                                "res/player/player_axe/b_atk/b_atk3.png"
+                        },
+                        { // down (front)
+                                "res/player/player_axe/f_atk/f_atk0.png",
+                                "res/player/player_axe/f_atk/f_atk1.png",
+                                "res/player/player_axe/f_atk/f_atk2.png",
+                                "res/player/player_axe/f_atk/f_atk3.png",
+                        },
+                        { // left
+                                "res/player/player_axe/l_atk/l_atk0.png",
+                                "res/player/player_axe/l_atk/l_atk1.png",
+                                "res/player/player_axe/l_atk/l_atk2.png",
+                                "res/player/player_axe/l_atk/l_atk3.png",
+                        },
+                        { // right
+                                "res/player/player_axe/r_atk/r_atk0.png",
+                                "res/player/player_axe/r_atk/r_atk1.png",
+                                "res/player/player_axe/r_atk/r_atk2.png",
+                                "res/player/player_axe/r_atk/r_atk3.png",
+                        }
+                };
+            }
 
             for (int d = 0; d < 4; d++) {
                 for (int f = 0; f < 4; f++) {
+                    // Use setup() which scales with nearest-neighbor to tileSize for crisp pixels
                     attackImages[d][f] = setup(atkPaths[d][f]);
                 }
             }
@@ -438,6 +479,9 @@ public class Player extends Entity {
             resetIdleAnimation();
         } else {
             handleIdleState();
+            // Even when idle, allow pickup if overlapping an object
+            int objIndexIdle = gp.cChecker.checkObject(this, true);
+            pickUpObject(objIndexIdle);
         }
 
         // F key: talk if near NPC (no sword attack on F)
@@ -518,12 +562,47 @@ public class Player extends Entity {
     public void pickUpObject(int index) {
         // Handle picking up an object
         if (index != -1) { // -1 means no object collision
-
+            Entity obj = gp.obj[index];
+            if (inventory.size() < inventorySize) {
+                // If it's a key, force its icon to the default key picture for inventory
+                if (obj instanceof OBJ_Key) {
+                    obj.down1 = setup("res/objects/key/keys_1_1.png");
+                }
+                inventory.add(obj); // Keep keys (and other items) in the inventory
+                gp.playSoundEffect(1);
+                gp.ui.addMessage("Got a " + obj.name + "!");
+                gp.obj[index] = null; // Remove from map
+            } else {
+                gp.ui.addMessage("You cannot carry any more items!");
+            }
         }
     }
 
     public void draw(Graphics2D g2) {
         draw(g2, gp); // Call the parent method with GamePanel parameter
+    }
+
+    public void selectItem() {
+        int itemIndex = gp.ui.getItemIndexOnslot();
+        if (itemIndex != -1) {
+            Entity selectedItem = inventory.get(itemIndex);
+
+            if (selectedItem.type == TYPE_SWORD || selectedItem.type == TYPE_AXE) {
+                // Equip weapon
+                currentWeapon = selectedItem;
+                attack = getAttack();
+                getAttackImage(); // Update attack images for new weapon
+
+            } else if (selectedItem.type == TYPE_SHIELD) {
+                // Equip shield
+                currentShield = selectedItem;
+                defense = getDefense();
+            } else if (selectedItem.type == TYPE_CONSUMABLE) {
+                // Use consumable
+                selectedItem.use(this);
+                inventory.remove(itemIndex);
+            } 
+        }
     }
 
     public void draw(Graphics2D g2, GamePanel gp) {
@@ -575,9 +654,9 @@ public class Player extends Entity {
             // Ensure nearest-neighbor when scaling to larger size (avoid blur)
             g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
-            // Zoom the player model to be 2 times larger
+            // Draw at 2.5x tile size; if attack frame was loaded raw, scale from its native
+            // size here
             int scaledSize = (int) (gp.tileSize * 2.5);
-            // Draw player at center of screen
             int centerX = gp.screenWidth / 2 - scaledSize / 2;
             int centerY = gp.screenHeight / 2 - scaledSize / 2;
             g2.drawImage(image, centerX, centerY, scaledSize, scaledSize, null);

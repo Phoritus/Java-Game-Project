@@ -2,7 +2,11 @@ package src.main;
 
 import src.entity.NPC_OldMan;
 import src.monster.MonBlueSlime;
+import src.object.OBJ_Axe;
 import src.object.OBJ_Boot;
+import src.object.OBJ_Key;
+import src.object.OBJ_Potion;
+import src.object.OBJ_Demon_shield;
 
 public class AssetSetter {
     
@@ -13,9 +17,31 @@ public class AssetSetter {
     }
 
     public void setObject() {
-        gp.obj[0] = new OBJ_Boot(gp);
-        gp.obj[0].worldX = gp.tileSize * 25; // Position the boot in the world
-        gp.obj[0].worldY = gp.tileSize * 19; // Position the boot in the world
+        int i = 0;
+        gp.obj[i] = new OBJ_Key(gp);
+        gp.obj[i].worldX = gp.tileSize * 25; // Position the key in the world
+        gp.obj[i].worldY = gp.tileSize * 19; // Position the key in the world
+        i++;
+        gp.obj[i] = new OBJ_Key(gp);
+        gp.obj[i].worldX = gp.tileSize * 25; // Position the boot in the world
+        gp.obj[i].worldY = gp.tileSize * 23; // Position the boot in the world
+        i++;
+        gp.obj[i] = new OBJ_Key(gp);
+        gp.obj[i].worldX = gp.tileSize * 21; // Position the boot in the world
+        gp.obj[i].worldY = gp.tileSize * 19; // Position the boot in the world
+        i++;
+        gp.obj[i] = new OBJ_Axe(gp);
+        gp.obj[i].worldX = gp.tileSize * 33; // Position the axe in the world
+        gp.obj[i].worldY = gp.tileSize * 21; // Position the axe in the world
+        i++;
+        gp.obj[i] = new OBJ_Demon_shield(gp);
+        gp.obj[i].worldX = gp.tileSize * 36; // Position the demon shield in the world
+        gp.obj[i].worldY = gp.tileSize * 25; // Position the demon shield in the world
+        i++;
+        gp.obj[i] = new OBJ_Potion(gp);
+        gp.obj[i].worldX = gp.tileSize * 22; // Position the potion in the world
+        gp.obj[i].worldY = gp.tileSize * 21; // Position the potion in the world
+        i++;
     }
 
     public void setNPC() {

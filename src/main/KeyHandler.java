@@ -93,25 +93,29 @@ public class KeyHandler implements KeyListener {
                     gp.ui.slotRow--;
                     gp.playSoundEffect(9);
                 }
-            } else if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
+            }if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
                 if (gp.ui.slotRow != 3) {
                     gp.ui.slotRow++;
                     gp.playSoundEffect(9);
                 }
-            } else if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
+            } if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
                 if (gp.ui.slotCol != 0) {
                     gp.ui.slotCol--;
                     gp.playSoundEffect(9);
                 }
-            } else if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
-                if (gp.ui.slotCol != 4) {
+            } if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
+                // Inventory has 4 columns (0..3); clamp to 3
+                if (gp.ui.slotCol < 3) {
                     gp.ui.slotCol++;
                     gp.playSoundEffect(9);
                 }
-            } else if (keyCode == KeyEvent.VK_C || keyCode == KeyEvent.VK_ESCAPE) {
+            } if (keyCode == KeyEvent.VK_C || keyCode == KeyEvent.VK_ESCAPE) {
                 // Exit character screen
                 gp.gameState = gp.playState;
                 return;
+            } if (keyCode == KeyEvent.VK_ENTER) {
+                // Confirm selection
+                gp.player.selectItem();
             }
             // Consume input in character screen so it doesn't affect gameplay
             return;
