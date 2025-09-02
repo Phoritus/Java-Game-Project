@@ -19,6 +19,8 @@ public class Sound {
         soundURL[7] = getClass().getResource("/res/sounds/receivedDmg.wav");
         soundURL[8] = getClass().getResource("/res/sounds/levelUp.wav");
         soundURL[9] = getClass().getResource("/res/sounds/slideInven.wav");
+        soundURL[10] = getClass().getResource("/res/sounds/fireball.wav");
+        soundURL[11] = getClass().getResource("/res/sounds/cuttree.wav");
     }
 
     public void setFile(int i) {

@@ -10,6 +10,10 @@ import java.util.Random;
 
 import src.entity.Entity;
 import src.main.GamePanel;
+import src.object.OBJ_Coin;
+import src.object.OBJ_Heart;
+import src.object.OBJ_ManaCrystal;
+import src.object.OBJ_Rock;
 
 public class MonBlueSlime extends Entity {
 
@@ -36,10 +40,11 @@ public class MonBlueSlime extends Entity {
         speed = baseSpeed;
         maxLife = 4;
         life = maxLife;
-        attack = 3;
+        attack = 2;
         defense = 1;
         direction = "down";
         exp = 2;
+        projectile = new OBJ_Rock(gp);
 
         // Collision box tuned for a small slime
         solidArea = new Rectangle(6, 24, 36, 20);
@@ -120,6 +125,12 @@ public class MonBlueSlime extends Entity {
             if (rng.nextInt(5) == 0)
                 direction = "idle";
             actionLockCounter = 0;
+        }
+        int i = new Random().nextInt(100) + 1;
+        if (i > 99 && !projectile.alive && shotAvailableCounter == 30) {
+            projectile.set(worldX, worldY, direction, true, this);
+            gp.projectileList.add(projectile);
+            shotAvailableCounter = 0;
         }
     }
 
@@ -263,6 +274,23 @@ public class MonBlueSlime extends Entity {
             direction = dx < 0 ? "left" : "right";
         } else {
             direction = dy < 0 ? "up" : "down";
+        }
+    }
+
+    public void checkDrop() {
+        // roll for drop
+        int i = new Random().nextInt(100) + 1;
+
+        // set the monster drop
+        if (i < 50) {
+            dropItem(new OBJ_Coin(gp));
+        }
+        if (i >= 50 && i < 75) {
+            dropItem(new OBJ_Heart(gp));
+        }
+
+        if (i >= 75 && i < 100) {
+            dropItem(new OBJ_ManaCrystal(gp));
         }
     }
 }

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 
 import src.entity.Entity;
 import src.object.OBJ_Heart;
+import src.object.OBJ_ManaCrystal;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -31,8 +32,13 @@ public class UI {
     public int titleAnimationSpeed = 1; // Slower animation for title screen
     public int slotCol = 0;
     public int slotRow = 0;
+    int subState = 0;
 
-    BufferedImage heart_full, heart_half, heart_blank; // Heart images for health display
+    // Inventory grid config
+    public int inventoryCols = 6; // columns in inventory grid
+    public int inventoryRows = 5; // rows in inventory grid
+
+    BufferedImage heart_full, heart_half, heart_blank, crystal_full, crystal_blank; // Heart images for health display
 
     public UI(GamePanel gp) {
         this.gp = gp; // Initialize the GamePanel reference
@@ -47,6 +53,10 @@ public class UI {
         heart_full = heart.image; // Full heart image
         heart_half = heart.image2; // Half heart image
         heart_blank = heart.image3; // Blank heart image
+
+        Entity crystal = new OBJ_ManaCrystal(gp);
+        crystal_full = crystal.image; // Full crystal image
+        crystal_blank = crystal.image2; // Blank crystal image
 
     }
 
@@ -93,37 +103,58 @@ public class UI {
             drawInventory();
         }
 
+        // Option state
+        if (gp.gameState == gp.optionState) {
+            drawOptionScreen();
+        }
+
+        // Game Over state
+        // if (gp.gameState == gp.gameOverState) {
+        // drawGameOverScreen();
+        // }
+
     }
 
     public void drawInventory() {
-        // Create A Frame
-        final int frameX = gp.tileSize * 9;
+        // Create inventory frame sized based on grid, ensure it fits the screen
+        final int padding = 20;
+        int slotSize = gp.tileSize + 3;
+        int maxFrameWidth = gp.screenWidth - (gp.tileSize * 2); // keep 1 tile margin both sides
+        // If too wide, shrink slot size to fit
+        int neededWidth = padding + (inventoryCols * slotSize) + padding;
+        if (neededWidth > maxFrameWidth) {
+            int availableForSlots = Math.max(48, maxFrameWidth - (padding * 2));
+            slotSize = Math.max(24, availableForSlots / inventoryCols);
+            neededWidth = padding + (inventoryCols * slotSize) + padding;
+        }
+        final int frameWidth = neededWidth;
+        final int frameHeight = padding + (inventoryRows * slotSize) + padding;
+        final int frameX = Math.max(gp.tileSize, gp.screenWidth - frameWidth - gp.tileSize); // anchor from right
         final int frameY = gp.tileSize;
-        final int frameWidth = gp.tileSize * 6;
-        final int frameHeight = gp.tileSize * 5;
         drawSubWindow(frameX, frameY, frameWidth, frameHeight);
 
         // Slot
-        final int slotXstart = frameX + 20;
-        final int slotYstart = frameY + 20;
+        final int slotXstart = frameX + padding;
+        final int slotYstart = frameY + padding;
         int slotX = slotXstart;
         int slotY = slotYstart;
-        int slotSize = gp.tileSize + 3;
 
         // Draw player's items
         for (int i = 0; i < gp.player.inventory.size(); i++) {
 
             // Equip cursor
-            if (gp.player.inventory.get(i) == gp.player.currentWeapon 
-            || gp.player.inventory.get(i) == gp.player.currentShield) {
+            if (gp.player.inventory.get(i) == gp.player.currentWeapon
+                    || gp.player.inventory.get(i) == gp.player.currentShield) {
                 // Draw equip cursor
                 g2.setColor(new Color(240, 190, 90));
                 g2.setStroke(new BasicStroke(3));
-                g2.fillRoundRect(slotX, slotY, gp.tileSize, gp.tileSize, 10, 10);
+                g2.fillRoundRect(slotX, slotY, slotSize, slotSize, 10, 10);
             }
-            g2.drawImage(gp.player.inventory.get(i).down1, slotX, slotY, null);
+            // Draw item icon scaled to slot
+            g2.drawImage(gp.player.inventory.get(i).down1, slotX, slotY, slotSize - 3, slotSize - 3, null);
             slotX += slotSize; // Move to the next slot
-            if (i % 4 == 3) { // If 4 items are in a row
+            // Move to next row after last column
+            if ((i + 1) % inventoryCols == 0) {
                 slotX = slotXstart; // Reset X
                 slotY += slotSize; // Move down to the next row
             }
@@ -132,8 +163,8 @@ public class UI {
         // Cursor
         int cursorX = slotXstart + (slotSize * slotCol);
         int cursorY = slotYstart + (slotSize * slotRow);
-        int cursorWidth = gp.tileSize;
-        int cursorHeight = gp.tileSize;
+        int cursorWidth = slotSize - 3;
+        int cursorHeight = slotSize - 3;
 
         // Draw cursor
         g2.setColor(Color.white);
@@ -153,7 +184,8 @@ public class UI {
         int itemIndex = getItemIndexOnslot();
         if (itemIndex < gp.player.inventory.size()) {
             drawSubWindow(dFrameX, dFrameY, dFrameWidth, dFrameHeight);
-            // drawSubWindow sets the font to Minecraft; now set a smaller font for the description
+            // drawSubWindow sets the font to Minecraft; now set a smaller font for the
+            // description
             g2.setFont(Minecraft.deriveFont(20f));
             for (String line : gp.player.inventory.get(itemIndex).description.split("\n")) {
                 g2.drawString(line, textX, textY);
@@ -164,8 +196,8 @@ public class UI {
     }
 
     public int getItemIndexOnslot() {
-        // Inventory grid is 4 columns per row in drawInventory
-        int itemIndex = slotCol + (slotRow * 4);
+        // Convert cursor position to inventory index based on grid columns
+        int itemIndex = slotCol + (slotRow * inventoryCols);
         return itemIndex;
     }
 
@@ -174,7 +206,7 @@ public class UI {
         final int frameX = gp.tileSize;
         final int frameY = gp.tileSize;
         final int frameWidth = gp.tileSize * 5;
-        final int frameHeight = gp.tileSize * 10;
+        final int frameHeight = gp.tileSize * 10 + 10;
         drawSubWindow(frameX, frameY, frameWidth, frameHeight);
 
         // Text
@@ -189,6 +221,8 @@ public class UI {
         g2.drawString("Level", textX, textY);
         textY += lineHeight;
         g2.drawString("Life", textX, textY);
+        textY += lineHeight;
+        g2.drawString("Mana", textX, textY);
         textY += lineHeight;
         g2.drawString("Strength", textX, textY);
         textY += lineHeight;
@@ -223,6 +257,11 @@ public class UI {
         // Life
         textY += lineHeight;
         value = gp.player.life + "/" + gp.player.maxLife;
+        textX = getXforAlignToRightText(value, tailX);
+        g2.drawString(value, textX, textY);
+        // Mana
+        textY += lineHeight;
+        value = gp.player.mana + "/" + gp.player.maxMana;
         textX = getXforAlignToRightText(value, tailX);
         g2.drawString(value, textX, textY);
         // Strength
@@ -279,9 +318,65 @@ public class UI {
 
     }
 
-    public void drawPlayerHealth() {
+    public void drawOptionScreen() {
+        g2.setColor(Color.WHITE);
+        g2.setFont(g2.getFont().deriveFont(15f));
 
-        // gp.player.life = 3;
+        // SUB WINDOW
+        int frameX = gp.tileSize * 6;
+        int frameY = gp.tileSize;
+        int frameWidth = gp.tileSize * 8;
+        int frameHeight = gp.tileSize * 10;
+        drawSubWindow(frameX, frameY, frameWidth, frameHeight);
+        // Title
+        switch (subState) {
+            case 0: option_top(frameX, frameY); break;
+            case 1: break;
+
+        }
+
+
+    }
+
+    public void option_top(int frameX, int frameY) {
+        int textX; int textY;
+        
+        //Title
+        String text = "Options";
+    g2.setFont(Minecraft.deriveFont(28f));
+    textX = getXforCenteredText(text);
+    textY = frameY + gp.tileSize;
+    g2.drawString(text, textX, textY);
+
+        // Full screen ON/OFF
+        textX = frameX + gp.tileSize;
+        textY += gp.tileSize;
+    g2.setFont(Minecraft.deriveFont(22f));
+    g2.drawString("Full Screen", textX, textY);
+
+        // Music ON/OFF
+        textY += gp.tileSize;
+    g2.drawString("Music", textX, textY);
+
+        // SE
+        textY += gp.tileSize;
+    g2.drawString("Sound Effects", textX, textY);
+
+        // Control
+        textY += gp.tileSize;
+    g2.drawString("Controls", textX, textY);
+
+        // END game
+        textY += gp.tileSize;
+    g2.drawString("End Game", textX, textY);
+
+
+        // Back
+        textY += gp.tileSize * 2;
+    g2.drawString("Back", textX, textY);
+    }
+
+    public void drawPlayerHealth() {
 
         int x = gp.tileSize / 2; // Start position for health display
         int y = gp.tileSize / 2; // Start position for health display
@@ -310,8 +405,31 @@ public class UI {
             x += gp.tileSize; // Move to the next heart position
         }
 
-    // Keys are displayed in inventory only (no HUD counter)
+        // Draw mana crystals (scaled up)
+        int crystalSize = (int) (gp.tileSize * 1.15); // 120% of tile size
+        int crystalGap = (int) (crystalSize * 0.65); // spacing between crystals
+        x = gp.tileSize / 2 - 9;
+        y = gp.tileSize + 20; // Position below hearts
+        i = 0;
 
+        // Draw blank crystals for max mana
+        while (i < gp.player.maxMana) {
+            g2.drawImage(crystal_blank, x, y, crystalSize, crystalSize, null);
+            x += crystalGap; // Move to the next crystal position
+            i++;
+        }
+
+        // Reset x position for full crystals
+        x = gp.tileSize / 2 - 9;
+        y = gp.tileSize + 20; // Position below hearts
+        i = 0;
+
+        // Draw full crystals for current mana
+        while (i < gp.player.mana) {
+            g2.drawImage(crystal_full, x, y, crystalSize, crystalSize, null);
+            x += crystalGap; // Move to the next crystal position
+            i++;
+        }
     }
 
     public void drawPauseScreen() {
@@ -348,7 +466,7 @@ public class UI {
 
         // Position at top right
         int textWidth = (int) g2.getFontMetrics().getStringBounds(musicText, g2).getWidth();
-        int x = gp.screenWidth - textWidth - 20; // 20 pixels from right edge
+        int x = gp.screenWidth - textWidth - 20; // 20 pixels from right edge (logical width)
         int y = 40; // Same height as time display
 
         g2.drawString(musicText, x, y);
@@ -357,7 +475,7 @@ public class UI {
         g2.setFont(new Font("Arial", Font.PLAIN, 20));
         String instructionText = "Press M to toggle";
         int instructionWidth = (int) g2.getFontMetrics().getStringBounds(instructionText, g2).getWidth();
-        int instructionX = gp.screenWidth - instructionWidth - 10;
+        int instructionX = gp.screenWidth - instructionWidth - 10; // logical width alignment
         int instructionY = 65;
         g2.setColor(Color.LIGHT_GRAY);
         g2.drawString(instructionText, instructionX, instructionY);
@@ -401,7 +519,7 @@ public class UI {
 
         // Draw title screen background
         g2.setFont(g2.getFont().deriveFont(60f)); // Set larger font for title
-        String titleText = "Nigga Adventure Game"; // Replace with your game title
+        String titleText = "2D Adventure Game"; // Replace with your game title
         int x = getXforCenteredText(titleText);
         int y = gp.screenHeight / 3; // Fixed: divide by 3, not multiply by 3
 
@@ -493,9 +611,7 @@ public class UI {
 
         // Draw the border
         g2.setColor(Color.WHITE);
-
-        // Draw title text
-        g2.setFont(Minecraft);
+    // Do not change the caller's font here; caller will set appropriate font size
         g2.setStroke(new BasicStroke(5)); // Thicker stroke for title
         g2.drawRoundRect(x + 5, y + 5, width - 10, height - 10, 25, 25);
 
@@ -510,4 +626,8 @@ public class UI {
         int length = (int) g2.getFontMetrics().getStringBounds(text, g2).getWidth();
         return tailX - length; // Calculate x position for right-aligned text
     }
+
+    // public void drawGameOverScreen() {
+
+    // }
 }

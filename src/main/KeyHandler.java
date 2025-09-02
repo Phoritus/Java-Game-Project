@@ -6,7 +6,7 @@ import java.awt.event.KeyListener;
 public class KeyHandler implements KeyListener {
     // KeyHandler implementation goes here
     // This class will handle key events for the game
-    public boolean upPressed, downPressed, leftPressed, rightPressed, enterPressed, fPressed, tPressed;
+    public boolean upPressed, downPressed, leftPressed, rightPressed, enterPressed, fPressed, tPressed, shortKeypress;
     GamePanel gp; // Reference to GamePanel
     boolean showDebugText = false;
 
@@ -78,34 +78,40 @@ public class KeyHandler implements KeyListener {
             } else if (keyCode == KeyEvent.VK_T) {
                 // Handle T key for teleport
                 tPressed = true;
-            } else if (keyCode == KeyEvent.VK_C) {
+            } if (keyCode == KeyEvent.VK_ESCAPE) {
+                gp.gameState = gp.optionState;
+                return; // Stop further handling so we don't immediately exit options
+            }
+            if (keyCode == KeyEvent.VK_E) {
+                shortKeypress = true;
+            } if (keyCode == KeyEvent.VK_C) {
                 // Enter character screen; navigation handled below when in characterState
                 gp.gameState = gp.characterState;
                 return;
-            }
+            } 
 
         }
 
         // Character screen navigation and exit
         if (gp.gameState == gp.characterState) {
             if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
-                if (gp.ui.slotRow != 0) {
+                if (gp.ui.slotRow > 0) {
                     gp.ui.slotRow--;
                     gp.playSoundEffect(9);
                 }
             }if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
-                if (gp.ui.slotRow != 3) {
+                if (gp.ui.slotRow < gp.ui.inventoryRows - 1) {
                     gp.ui.slotRow++;
                     gp.playSoundEffect(9);
                 }
             } if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
-                if (gp.ui.slotCol != 0) {
+                if (gp.ui.slotCol > 0) {
                     gp.ui.slotCol--;
                     gp.playSoundEffect(9);
                 }
             } if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
-                // Inventory has 4 columns (0..3); clamp to 3
-                if (gp.ui.slotCol < 3) {
+                // Move right within dynamic column bounds
+                if (gp.ui.slotCol < gp.ui.inventoryCols - 1) {
                     gp.ui.slotCol++;
                     gp.playSoundEffect(9);
                 }
@@ -115,6 +121,11 @@ public class KeyHandler implements KeyListener {
                 return;
             } if (keyCode == KeyEvent.VK_ENTER) {
                 // Confirm selection
+                // Ensure the cursor doesn't point past the end of the inventory list
+                int index = gp.ui.getItemIndexOnslot();
+                if (index >= gp.player.inventory.size()) {
+                    return;
+                }
                 gp.player.selectItem();
             }
             // Consume input in character screen so it doesn't affect gameplay
@@ -138,7 +149,19 @@ public class KeyHandler implements KeyListener {
             }
         }
 
-    // Character customization toggle (exit) handled above in characterState block
+        // Option State: limit handling to option-specific keys
+        if (gp.gameState == gp.optionState) {
+            if (keyCode == KeyEvent.VK_ESCAPE) {
+                gp.gameState = gp.playState; // Exit option state
+                return;
+            }
+            if (keyCode == KeyEvent.VK_ENTER) {
+                enterPressed = true;
+                return;
+            }
+            // swallow other keys while options open
+            return;
+        }
 
         // Debugging output
         if (keyCode == KeyEvent.VK_F1) {
@@ -171,6 +194,9 @@ public class KeyHandler implements KeyListener {
             fPressed = false; // Reset F key state
         } else if (keyCode == KeyEvent.VK_T) {
             tPressed = false; // Reset T key state
+        } if (keyCode == KeyEvent.VK_E) {
+            // Reset short press flag when E is released to prevent spamming
+            shortKeypress = false;
         }
     }
 

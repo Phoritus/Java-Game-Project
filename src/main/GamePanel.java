@@ -5,14 +5,19 @@ import javax.swing.SwingUtilities;
 import src.entity.Entity;
 import src.entity.Player;
 import src.tile.TileManager;
+import src.tiles_interactive.InteractiveTile;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -26,7 +31,7 @@ public class GamePanel extends JPanel implements Runnable {
     final int scale = 3; // Scale factor
 
     public final int tileSize = originalTileSize * scale; // 48x48 tiles
-    public final int maxScreenCol = 16; // 16 columns
+    public final int maxScreenCol = 20;
     public final int maxScreenRow = 12; // 12 rows
     public final int screenWidth = tileSize * maxScreenCol; // 768 pixels wide
     public final int screenHeight = tileSize * maxScreenRow; // 576 pixels tall
@@ -36,6 +41,23 @@ public class GamePanel extends JPanel implements Runnable {
     public final int maxWorldRow = 50; // 50 rows in the world
     public final int worldWidth = tileSize * maxWorldCol; // 2400 pixels wide
     public final int worldHeight = tileSize * maxWorldRow; // 2400 pixels
+
+    //For Full Screen
+    int screenWidth2 = screenWidth;
+    int screenHeight2 = screenHeight;
+    // Offscreen buffers: workScreen is drawn by the game thread, tempScreen is painted by EDT
+    private final Object frameLock = new Object();
+    BufferedImage tempScreen;
+    BufferedImage workScreen;
+    Graphics2D g2; // Graphics bound to workScreen for building the next frame
+
+    // Render scale: keep at 1.0 so internal resolution remains the same.
+    private double renderScale = 1.0;
+
+    // Fullscreen/windowed control
+    private boolean fullscreenEnabled = false; // default to windowed
+    private int windowedWidth = 1280;
+    private int windowedHeight = 720;
 
     // Sound settings
     src.main.Sound music = new src.main.Sound(); // Sound manager for handling game sounds
@@ -61,8 +83,11 @@ public class GamePanel extends JPanel implements Runnable {
     public Player player = new Player(this, keyHandler); // Player entity
     public Entity obj[] = new Entity[10]; // Array to hold game objects
     public Entity npc[] = new Entity[10]; // Array to hold NPCs (Non-Player Characters)
+    public InteractiveTile iTile[] = new InteractiveTile[30]; // Array to hold interactive tiles
     public Entity monster[] = new Entity[20]; // Array to hold monsters
     ArrayList<Entity> entityList = new ArrayList<>(); // List to hold all entities in the game
+    public ArrayList<Entity> particleList = new ArrayList<>(); // List to hold all particles in the game
+    public ArrayList<Entity> projectileList = new ArrayList<>(); // List to hold all projectiles in the game
 
     // Game State
     public int gameState;
@@ -71,6 +96,8 @@ public class GamePanel extends JPanel implements Runnable {
     public final int pauseState = 2; // Game is paused
     public final int dialogState = 3; // Dialog state for NPC interactions
     public final int characterState = 4; // Character customization state
+    public final int gameOverState = 6;
+    public final int optionState = 7;
 
     // Sound State
     public boolean musicOn = true; // Track if music is on or off
@@ -101,8 +128,101 @@ public class GamePanel extends JPanel implements Runnable {
         assetSetter.setObject(); // Set up game objects
         assetSetter.setNPC(); // Set up NPCs
         assetSetter.setMonster(); // Set up monsters
+        assetSetter.setInteractiveTile();
         // playMusic(0); // Play background music
         gameState = titleState; // Set initial game state to title screen
+    // Choose display mode (windowed by default)
+    if (fullscreenEnabled) {
+        setFullScreen();
+    } else {
+        setWindowed(windowedWidth, windowedHeight);
+    }
+    // Create the back buffers at reduced internal resolution
+    int renderW = (int) Math.round(screenWidth * renderScale);
+    int renderH = (int) Math.round(screenHeight * renderScale);
+    tempScreen = new BufferedImage(renderW, renderH, BufferedImage.TYPE_INT_ARGB);
+    workScreen = new BufferedImage(renderW, renderH, BufferedImage.TYPE_INT_ARGB);
+    g2 = (Graphics2D) workScreen.getGraphics();
+    // Set transform so game draws using logical coordinates into smaller buffer
+    g2.setTransform(new AffineTransform());
+    g2.scale(renderScale, renderScale);
+    }
+
+    public void setFullScreen(){
+
+        // Get local screen device
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        GraphicsDevice gd = ge.getDefaultScreenDevice();
+        try {
+            // Ensure proper decoration state for fullscreen
+            Main.window.setVisible(false);
+            Main.window.dispose();
+            Main.window.setUndecorated(true);
+            Main.window.setResizable(false);
+        } catch (Exception ignore) {}
+        try {
+            gd.setFullScreenWindow(Main.window);
+        } catch (Exception e) {
+            // Fallback: borderless maximized window covers screen
+            Main.window.setExtendedState(Main.window.getExtendedState() | java.awt.Frame.MAXIMIZED_BOTH);
+        }
+
+    // Get full screen width and height using the display mode (more reliable here)
+        java.awt.DisplayMode dm = gd.getDisplayMode();
+        if (dm != null) {
+            screenWidth2 = dm.getWidth();
+            screenHeight2 = dm.getHeight();
+        } else {
+            // Fallback to the window size if display mode unavailable
+            screenWidth2 = Main.window.getWidth();
+            screenHeight2 = Main.window.getHeight();
+        }
+
+    // Ensure this panel/layout knows about the new size
+    this.setPreferredSize(new Dimension(screenWidth2, screenHeight2));
+    this.setSize(screenWidth2, screenHeight2);
+    Main.window.setSize(screenWidth2, screenHeight2);
+    Main.window.revalidate();
+    Main.window.validate();
+    this.revalidate();
+    this.repaint();
+    }
+
+    public void setWindowed(int width, int height) {
+        // Exit exclusive fullscreen if set
+        GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+        try {
+            if (gd.getFullScreenWindow() != null) {
+                gd.setFullScreenWindow(null);
+            }
+        } catch (Exception ignore) {}
+
+        // Switch to decorated window and size it
+        try {
+            Main.window.setVisible(false);
+            Main.window.dispose();
+            Main.window.setUndecorated(false);
+            Main.window.setResizable(true);
+        } catch (Exception ignore) {}
+
+        this.setPreferredSize(new Dimension(width, height));
+        this.setSize(width, height);
+        Main.window.add(this);
+        Main.window.pack();
+        Main.window.setSize(width, height);
+        Main.window.setLocationRelativeTo(null);
+        Main.window.setVisible(true);
+        this.revalidate();
+        this.repaint();
+    }
+
+    public void toggleFullscreen() {
+        fullscreenEnabled = !fullscreenEnabled;
+        if (fullscreenEnabled) {
+            setFullScreen();
+        } else {
+            setWindowed(windowedWidth, windowedHeight);
+        }
     }
 
     public void startGameThread() {
@@ -125,24 +245,28 @@ public class GamePanel extends JPanel implements Runnable {
             if (gameState == titleState) {
                 // Title state - only repaint for animation
                 if (delta >= 1) {
-                    repaint(); // Repaint to update title screen animation
+                    drawToTempScreen();
+                    drawToScreen();
                     delta--;
                 }
             } else if (gameState == playState) {
                 if (delta >= 1) { // If enough time has passed for a frame
                     update(); // Update game logic
-                    repaint(); // Render the game
+                    drawToTempScreen(); // Render the game
+                    drawToScreen();
                     delta--; // Decrease delta by 1 to indicate a frame has been processed
                 }
             } else if (gameState == dialogState) {
                 if (delta >= 1) { // Update during dialog too
                     update(); // Update game logic (for animations)
-                    repaint(); // Render the game
+                    drawToTempScreen(); // Render the game
+                    drawToScreen();
                     delta--; // Decrease delta by 1 to indicate a frame has been processed
                 }
             } else if (gameState == pauseState) {
                 // Only repaint when paused to show pause screen
-                repaint();
+                drawToTempScreen();
+                drawToScreen();
                 delta = 0; // Reset delta to prevent buildup during pause
                 try {
                     Thread.sleep(50); // Sleep longer during pause to reduce CPU usage
@@ -152,7 +276,19 @@ public class GamePanel extends JPanel implements Runnable {
                 continue; // Skip the normal sleep at the bottom
             } else if (gameState == characterState) {
                 // Character customization: treat like pause (no updates), but repaint for UI
-                repaint();
+                drawToTempScreen();
+                drawToScreen();
+                delta = 0;
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                continue;
+            } else if (gameState == optionState) {
+                // Options menu: draw without updating gameplay
+                drawToTempScreen();
+                drawToScreen();
                 delta = 0;
                 try {
                     Thread.sleep(50);
@@ -197,12 +333,48 @@ public class GamePanel extends JPanel implements Runnable {
                     // if desired
                     m.dyingCounter++;
                     if (m.dyingCounter > 40) { // remove after fade window (~2/3s)
+                        monster[i].checkDrop();
                         monster[i] = null;
                     }
                     continue;
                 }
                 if (m.alive) {
                     m.update();
+                }
+            }
+
+            // Update and remove projectiles (iterate backwards to avoid skipping on remove)
+            for (int i = projectileList.size() - 1; i >= 0; i--) {
+                Entity p = projectileList.get(i);
+                if (p == null) {
+                    projectileList.remove(i);
+                    continue;
+                }
+                if (p.alive) {
+                    p.update();
+                }
+                if (!p.alive) {
+                    projectileList.remove(i);
+                }
+            }
+
+            for (int i = particleList.size() - 1; i >= 0; i--) {
+                Entity p = particleList.get(i);
+                if (p == null) {
+                    particleList.remove(i);
+                    continue;
+                }
+                if (p.alive) {
+                    p.update();
+                }
+                if (!p.alive) {
+                    particleList.remove(i);
+                }
+            }
+
+            for (int i = 0; i < iTile.length; i++) {
+                if (iTile[i] != null) {
+                    iTile[i].update(); // Update each interactive tile
                 }
             }
 
@@ -237,11 +409,13 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    public void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        // Render game graphics here
-        Graphics2D g2 = (Graphics2D) g;
-
+    public void drawToTempScreen() {
+    // Ensure transform is applied each frame (fresh Graphics on swap)
+    g2.setTransform(new AffineTransform());
+    g2.scale(renderScale, renderScale);
+    // Clear the work buffer before drawing the new frame (logical coords)
+    g2.setColor(Color.BLACK);
+    g2.fillRect(0, 0, screenWidth, screenHeight);
         // Title screen
         if (gameState == titleState) {
             ui.draw(g2); // Draw only the title screen UI
@@ -250,6 +424,11 @@ public class GamePanel extends JPanel implements Runnable {
         else if (gameState == playState) {
             // Draw game elements
             tileManager.draw(g2); // Draw the tiles
+            for (int i = 0; i < iTile.length; i++) {
+                if (iTile[i] != null) {
+                    iTile[i].draw(g2); // Draw each interactive tile
+                }
+            }
 
             entityList.add(player); // Add player to entity list
 
@@ -268,6 +447,17 @@ public class GamePanel extends JPanel implements Runnable {
             for (int i = 0; i < monster.length; i++) {
                 if (monster[i] != null) {
                     entityList.add(monster[i]); // Add each monster to entity list
+                }
+            }
+
+            for (int i = 0; i < projectileList.size(); i++) {
+                if (projectileList.get(i) != null && projectileList.get(i).alive) {
+                    entityList.add(projectileList.get(i)); // Add alive projectiles only
+                }
+            }
+            for (int i = 0; i < particleList.size(); i++) {
+                if (particleList.get(i) != null && particleList.get(i).alive) {
+                    entityList.add(particleList.get(i)); // Add alive particles only
                 }
             }
 
@@ -375,6 +565,40 @@ public class GamePanel extends JPanel implements Runnable {
             // UI (includes pause screen)
             ui.draw(g2); // Draw the user interface with pause overlay
         }
+        // Option state - draw game world + options UI
+        else if (gameState == optionState) {
+            // Draw game elements as background
+            tileManager.draw(g2);
+
+            entityList.add(player);
+            for (int i = 0; i < npc.length; i++) {
+                if (npc[i] != null)
+                    entityList.add(npc[i]);
+            }
+            for (int i = 0; i < obj.length; i++) {
+                if (obj[i] != null)
+                    entityList.add(obj[i]);
+            }
+            for (int i = 0; i < monster.length; i++) {
+                if (monster[i] != null)
+                    entityList.add(monster[i]);
+            }
+
+            Collections.sort(entityList, new Comparator<Entity>() {
+                @Override
+                public int compare(Entity e1, Entity e2) {
+                    return Integer.compare(e1.worldY, e2.worldY);
+                }
+            });
+            for (Entity entity : entityList) {
+                if (entity != null)
+                    entity.draw(g2, this);
+            }
+            entityList.clear();
+
+            // Draw the options UI frame
+            ui.draw(g2);
+        }
         // Character customization state - draw game world + character UI
         else if (gameState == characterState) {
             // Draw game elements as background
@@ -410,7 +634,7 @@ public class GamePanel extends JPanel implements Runnable {
             ui.draw(g2);
         }
 
-        if (keyHandler.showDebugText) {
+    if (keyHandler.showDebugText) {
 
             g2.setFont(new Font("Arial", Font.PLAIN, 12));
             g2.setColor(Color.WHITE);
@@ -429,9 +653,61 @@ public class GamePanel extends JPanel implements Runnable {
 
         }
 
-        g2.dispose(); // Dispose of the graphics context
+        // Swap buffers atomically so paintComponent always reads a complete frame
+        synchronized (frameLock) {
+            BufferedImage swap = tempScreen;
+            tempScreen = workScreen;
+            workScreen = swap;
+            g2 = (Graphics2D) workScreen.getGraphics();
+            // Reapply transform for the new work buffer
+            g2.setTransform(new AffineTransform());
+            g2.scale(renderScale, renderScale);
+        }
+
+    }
+    
+    public void drawToScreen(){
+        // Let Swing handle painting; this avoids flicker and centers consistently
+        repaint();
     }
 
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        BufferedImage toDraw;
+        synchronized (frameLock) {
+            toDraw = tempScreen;
+        }
+        if (toDraw == null) return;
+        // Letterbox-scale the logical buffer to the current component size
+        int w = getWidth();
+        int h = getHeight();
+        if (w <= 0 || h <= 0) return;
+
+        // Clear background (letterbox bars)
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, w, h);
+
+    // tempScreen is smaller; compute scale based on logical size
+    double scaleX = (double) w / (double) screenWidth;
+    double scaleY = (double) h / (double) screenHeight;
+    double scale = Math.min(scaleX, scaleY);
+    int drawW = (int) Math.round(screenWidth * scale);
+    int drawH = (int) Math.round(screenHeight * scale);
+    int dx = (w - drawW) / 2;
+    int dy = (h - drawH) / 2;
+
+    // Use nearest-neighbor scaling to keep pixel art crisp
+    Graphics2D g2d = (Graphics2D) g;
+    g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+        java.awt.RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+    g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+        java.awt.RenderingHints.VALUE_ANTIALIAS_OFF);
+    g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+        java.awt.RenderingHints.VALUE_RENDER_SPEED);
+
+    g2d.drawImage(toDraw, dx, dy, drawW, drawH, null);
+    }
     public void playMusic(int musicIndex) {
         music.setFile(musicIndex); // Set the music file based on index
         if (musicOn) {

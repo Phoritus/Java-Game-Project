@@ -2,21 +2,25 @@ package src.main;
 import javax.swing.JFrame;
 
 public class Main {
+    
+    public static JFrame window;
     public static void main(String[] args) {
-        JFrame window = new JFrame("My Application");
+        window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        window.setResizable(false);
+    window.setResizable(true);
         window.setTitle("2D Adventure Game");
 
         GamePanel gamePanel = new GamePanel();
         window.add(gamePanel);
 
-        window.pack(); // Adjusts the window size to fit the GamePanel
+    // Set up the game (GamePanel will choose windowed or fullscreen)
+    gamePanel.setupGame();
 
-        window.setLocationRelativeTo(null);
+    // Now show the window (GamePanel.setupGame may already make it visible)
+    if (!window.isVisible()) {
         window.setVisible(true);
+    }
 
-        gamePanel.setupGame(); // Set up the game (assets, player, etc.)
-        gamePanel.startGameThread(); // Start the game loop
+    gamePanel.startGameThread(); // Start the game loop
     }
 }

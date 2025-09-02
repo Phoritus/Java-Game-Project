@@ -2,6 +2,7 @@ package src.entity;
 
 import java.awt.Graphics2D;
 import java.awt.AlphaComposite;
+import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
@@ -11,15 +12,18 @@ import javax.imageio.ImageIO;
 import src.main.GamePanel;
 import src.main.UtilityTool;
 
-public class Entity {
+public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable {
     protected GamePanel gp; // Reference to the GamePanel for accessing game state
     public int worldX, worldY; // World coordinates of the entity
     public int screenX, screenY; // Screen coordinates of the entity
 
-    public BufferedImage up1, up2, down1, down2, left1, left2, right1, right2; // Images for animations
+    public BufferedImage up1, up2, up3, up4, up5; // Images for animations
+    public BufferedImage down1, down2, down3, down4, down5;
+    public BufferedImage left1, left2, left3, left4, left5;
+    public BufferedImage right1, right2, right3, right4, right5;
     public String direction = "down"; // Direction of the entity
     public BufferedImage image, image2, image3; // Images for the entity
-
+    public int shotAvailableCounter = 0;
 
     public BufferedImage[] animationFrames; // Array for animation frames
     public boolean collision = false;
@@ -32,7 +36,7 @@ public class Entity {
 
     public int spriteCounter = 0; // Counter for animation frames
     public int spriteNum = 1; // Current sprite number for animation
-    public Rectangle solidArea = new Rectangle(18, 50, 13, 13); // Collision area for the entity
+    public Rectangle solidArea = new Rectangle(18, 50, 13, 13); // Default; projectiles will override after init
     public Rectangle attackArea = new Rectangle(0, 0, 0, 0); // Area for attack collision
     public boolean collisionOn = false; // Flag for collision detection
     public int type; // 0 = Player, 1 = NPC, 2 = Monster
@@ -45,7 +49,7 @@ public class Entity {
     public int idleFrame = 1; // Current idle frame
 
     public int actionLockCounter = 0; // Counter to lock actions for a certain period
-    String dialogues[] = new String[20]; // Array to hold dialogue strings
+    String dialogues[] = new String[10]; // Array to hold dialogue strings
     int dialogueIndex = 0; // Current dialogue index
 
     // Character attributes
@@ -53,6 +57,9 @@ public class Entity {
     public int maxLife;
     public int life;
     public int speed; // Speed of the entity
+    public int maxMana;
+    public int mana;
+    public int ammo;
     public int level;
     public int strength;
     public int dexterity;
@@ -63,6 +70,8 @@ public class Entity {
     public int coin;
     public Entity currentWeapon;
     public Entity currentShield;
+    public Projectile projectile;
+    public int value;
 
     // TYPE
     public final int TYPE_PLAYER = 0;
@@ -72,15 +81,33 @@ public class Entity {
     public final int TYPE_AXE = 4;
     public final int TYPE_SHIELD = 5;
     public final int TYPE_CONSUMABLE = 6;
-
+    public final int TYPE_PICKUP_ONLY = 7;
 
     // ITEM Attributes
     public int attackValue;
     public int defenseValue;
     public String description = "";
+    public int useCost;
 
-    public void setAction() {}
-    public void damageReaction() {}
+    public void setAction() {
+    }
+
+    public void damageReaction() {
+    }
+
+    public void checkDrop() {
+    }
+
+    public void dropItem(Entity droppedItem) {
+        for (int i = 0; i < gp.obj.length; i++) {
+            if (gp.obj[i] == null) {
+                gp.obj[i] = droppedItem;
+                gp.obj[i].worldX = this.worldX; // the dead
+                gp.obj[i].worldY = this.worldY;
+                break;
+            }
+        }
+    }
 
     public void speak() {
         // NPC should face OPPOSITE direction of player (face towards player)
@@ -100,7 +127,8 @@ public class Entity {
         }
     }
 
-    public void use(Entity entity) {}
+    public void use(Entity entity) {
+    }
 
     public void update() {
         setAction();
@@ -113,16 +141,7 @@ public class Entity {
 
         // Monster damages player on contact with invincibility cooldown
         if (this.type == TYPE_MONSTER && contactPlayer && this.alive && !this.dying) {
-            if (!gp.player.invincible) {
-                // Play received-damage SFX (index 7), not swing
-                gp.playSoundEffect(7);
-                int damage = attack - gp.player.defense;
-                if (damage < 0)
-                    damage = 0;
-                gp.player.life -= damage;
-                gp.player.invincible = true; // start i-frames
-                gp.player.invincibleCounter = 0;
-            }
+            damagePlayer(attack);
         }
 
         // Check for object collisions only if no tile collision
@@ -134,7 +153,7 @@ public class Entity {
         if (!collisionOn) {
             gp.cChecker.checkEntity(this, gp.npc); // Check for NPC collisions
         }
-        
+
         // Check for player collision (prevent NPC from walking through player)
         if (!collisionOn) {
             boolean playerCollision = gp.cChecker.checkPlayer(this); // Check if NPC hits player
@@ -173,14 +192,8 @@ public class Entity {
             }
         }
 
-        // Handle player's invincibility countdown (i-frames)
-        if (gp.player != null && gp.player.invincible) {
-            gp.player.invincibleCounter++;
-            if (gp.player.invincibleCounter > 60) { // ~1 second at 60 FPS
-                gp.player.invincible = false;
-                gp.player.invincibleCounter = 0;
-            }
-        }
+        // Player's invincibility countdown is handled in Player.update() to avoid
+        // incrementing multiple times per frame (once per entity update).
 
         // Handle this entity's own invincibility (e.g., monsters)
         if (this != gp.player && this.invincible) {
@@ -190,24 +203,41 @@ public class Entity {
                 this.invincibleCounter = 0;
             }
         }
-        // Note: Dying fade is applied during draw(), not here (no Graphics2D in update()).
+        if (shotAvailableCounter < 30) {
+            shotAvailableCounter++;
+        }
     }
 
     public void dyingAnimation(Graphics2D g2) {
         dyingCounter++;
 
         int i = 5;
-        if (dyingCounter <= i) {changeAlpha(g2, 0f);}
-        if (dyingCounter > i && dyingCounter <= i * 2) {changeAlpha(g2, 0.1f);}
-        if (dyingCounter > i * 2 && dyingCounter <= i * 3) {changeAlpha(g2, 0.2f);}
-        if (dyingCounter > i * 3 && dyingCounter <= i * 4) {changeAlpha(g2, 0.3f);}
-        if (dyingCounter > i * 4 && dyingCounter <= i * 5) {changeAlpha(g2, 0.4f);}
-        if (dyingCounter > i * 5 && dyingCounter <= i * 6) {changeAlpha(g2, 0.5f);}
-        if (dyingCounter > i * 6 && dyingCounter <= i * 7) {changeAlpha(g2, 0.6f);}
-        if (dyingCounter > i * 7 && dyingCounter <= i * 8) {changeAlpha(g2, 0.7f);}
+        if (dyingCounter <= i) {
+            changeAlpha(g2, 0f);
+        }
+        if (dyingCounter > i && dyingCounter <= i * 2) {
+            changeAlpha(g2, 0.1f);
+        }
+        if (dyingCounter > i * 2 && dyingCounter <= i * 3) {
+            changeAlpha(g2, 0.2f);
+        }
+        if (dyingCounter > i * 3 && dyingCounter <= i * 4) {
+            changeAlpha(g2, 0.3f);
+        }
+        if (dyingCounter > i * 4 && dyingCounter <= i * 5) {
+            changeAlpha(g2, 0.4f);
+        }
+        if (dyingCounter > i * 5 && dyingCounter <= i * 6) {
+            changeAlpha(g2, 0.5f);
+        }
+        if (dyingCounter > i * 6 && dyingCounter <= i * 7) {
+            changeAlpha(g2, 0.6f);
+        }
+        if (dyingCounter > i * 7 && dyingCounter <= i * 8) {
+            changeAlpha(g2, 0.7f);
+        }
 
         if (dyingCounter > i * 8) { // After 30 frames, remove the entity
-            dying = false;
             alive = false;
         }
     }
@@ -217,9 +247,54 @@ public class Entity {
         g2.setComposite(ac);
     }
 
+    public Color getParticleColor() {
+        return null;
+    }
+
+    public int getParticleSize() {
+        return 0;
+    }
+
+    public int getParticleSpeed() {
+        return 0;
+    }
+
+    public int getParticleMaxLife() {
+        return 0;
+    }
+
+    public void generateParticles(Entity generator, Entity target) {
+        Color color = generator.getParticleColor();
+        int size = generator.getParticleSize();
+        int speed = generator.getParticleSpeed();
+        int maxLife = generator.getParticleMaxLife();
+
+    Particle p1 = new Particle(gp, color, target, size, maxLife, speed, -2, -1);
+    Particle p2 = new Particle(gp, color, target, size, maxLife, speed, 2, -1);
+    Particle p3 = new Particle(gp, color, target, size, maxLife, speed, -2, 1);
+    Particle p4 = new Particle(gp, color, target, size, maxLife, speed, 2, 1);
+        gp.particleList.add(p1);
+        gp.particleList.add(p2);
+        gp.particleList.add(p3);
+        gp.particleList.add(p4);
+    }
 
     public Entity(GamePanel gp) {
         this.gp = gp;
+    }
+
+    public void damagePlayer(int attack) {
+        // Only damage if the player is not currently invincible
+        if (!gp.player.invincible) {
+            // Play received-damage SFX (index 7), not swing
+            gp.playSoundEffect(7);
+            int damage = attack - gp.player.defense;
+            if (damage < 0)
+                damage = 0;
+            gp.player.life -= damage;
+            gp.player.invincible = true; // start i-frames
+            gp.player.invincibleCounter = 0;
+        }
     }
 
     public void draw(Graphics2D g2, GamePanel gp) {
@@ -309,7 +384,6 @@ public class Entity {
     }
 
     public BufferedImage setup(String imagePath) {
-
         UtilityTool uTool = new UtilityTool();
         BufferedImage image = null;
         try {

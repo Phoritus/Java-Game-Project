@@ -29,6 +29,8 @@ public class NPC_OldMan extends Entity {
 
         direction = "idle"; // Default direction for the NPC (idle animation)
         speed = 1; // NPCs typically do not move, so speed is set to 1
+    type = TYPE_NPC; // Ensure this entity is recognized as an NPC
+    collision = true; // NPC should be solid (block player and other entities)
 
         getNPCImage(); // Load the priest images
         setDialogue(); // Set initial dialogue for the NPC

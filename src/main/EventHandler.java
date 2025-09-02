@@ -103,7 +103,7 @@ public class EventHandler {
         gp.gameState = gameState; // Change game state to healing pool
         gp.ui.currentDialogue = "You feel refreshed!"; // Set dialogue for the player
         gp.player.life = gp.player.maxLife; // Increase player's life to max
-        
+        gp.player.mana = gp.player.maxMana; // Increase player's mana to max
         // Prevent life from exceeding max life
         if (gp.player.life > gp.player.maxLife) {
             gp.player.life = gp.player.maxLife;

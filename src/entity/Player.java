@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import javax.imageio.ImageIO;
 import java.awt.RenderingHints;
 import src.main.UtilityTool;
+import src.object.OBJ_Axe;
+import src.object.OBJ_Fireball;
 import src.object.OBJ_Key;
 import src.object.OBJ_Normal_Sword;
 import src.object.OBJ_Premium_Shield;
@@ -25,13 +27,16 @@ public class Player extends Entity {
 
     // Animation images for all directions (6 frames each)
     public BufferedImage[][] animationImages = new BufferedImage[5][6]; // [direction][frame]
-    // 0=up, 1=down, 2=left, 3=right, 4=idle
+    // 0=up, 1=down, 2=left, 3=right, 4=legacy idle (unused after directional idle)
+    // New: directional idle frames for up/down/left/right
+    public BufferedImage[][] idleImages = new BufferedImage[4][6]; // [0..3][frame]
 
     public int idleCounter = 0;
     public int idleFrame = 1;
+    private boolean isIdle = false;
     private int lastFacingDirIndex = 1; // 0=up,1=down,2=left,3=right
     public ArrayList<Entity> inventory = new ArrayList<>();
-    public final int inventorySize = 20; // Maximum inventory slots
+    public final int inventorySize = 30; // Maximum inventory slots (6x5 grid)
 
     // Attack animation state
     public BufferedImage[][] attackImages = new BufferedImage[4][4]; // [up,down,left,right][frame]
@@ -61,7 +66,7 @@ public class Player extends Entity {
         // attackArea.height = 36;
 
         setDefaultValues(); // Set initial position and speed
-        getPlayerImage(); // Load player images
+        getPlayerImage(); // Load player images (walk + idle)
         getAttackImage(); // Load attack images
         setItems(); // Initialize inventory items
     }
@@ -79,10 +84,17 @@ public class Player extends Entity {
         strength = 1; // Affects attack power
         dexterity = 1; // More Dexterity, less damage taken
         exp = 0;
+        ammo = 10;
         nextLevelExp = 5;
         coin = 0;
-        currentWeapon = new OBJ_Normal_Sword(gp);
+        // Initialize mana so UI can render crystals
+        maxMana = 4;
+        mana = maxMana;
+        //currentWeapon = new OBJ_Normal_Sword(gp);
+        currentWeapon = new OBJ_Axe(gp);
         currentShield = new OBJ_Premium_Shield(gp);
+        projectile = new OBJ_Fireball(gp);
+        // projectile = new OBJ_Rock(gp);
         attack = getAttack(); // Calculate initial attack value
         defense = getDefense(); // Calculate initial defense value
     }
@@ -120,20 +132,30 @@ public class Player extends Entity {
     }
 
     public void interactMonster(int index) {
-        if (index != -1) { // If a monster is collided
-            if (!invincible) {
-                gp.playSoundEffect(7);
-                int damage = gp.monster[index].attack - defense;
-                if (damage < 0)
-                    damage = 0;
-                life -= damage;
-                invincible = true; // Set invincibility after taking damage
-            }
-            // No need to reset enter key here; combat isn't tied to F
+        if (index == -1)
+            return; // No monster contact
+        Entity m = gp.monster[index];
+        if (m == null)
+            return;
+        // Only apply contact damage here if the monster is alive and NOT dying,
+        // and the player is not currently invincible. This prevents damage during
+        // fade-out.
+        if (!invincible && m.alive && !m.dying) {
+            gp.playSoundEffect(7);
+            int damage = m.attack - defense;
+            if (damage < 0)
+                damage = 0;
+            life -= damage;
+            invincible = true; // start i-frames
+            invincibleCounter = 0;
         }
+        // Note: Monsters also handle contact damage in their own update via
+        // Entity.update().
+        // Because player updates first, this ensures at most one damage application per
+        // frame.
     }
 
-    public void damageMonster(int index) {
+    public void damageMonster(int index, int attack) {
         if (index < 0 || index >= gp.monster.length)
             return;
         Entity m = gp.monster[index];
@@ -186,9 +208,11 @@ public class Player extends Entity {
             level++;
             nextLevelExp *= 2; // Double the experience needed for the next level
             maxLife += 2;
+            maxMana += 1;
             strength++;
             dexterity++;
             life = maxLife; // Restore life on level up
+            mana = maxMana; // Restore mana on level up
             attack = getAttack();
             defense = getDefense();
 
@@ -196,6 +220,7 @@ public class Player extends Entity {
             gp.gameState = gp.dialogState;
             gp.ui.currentDialogue = "You leveled up! You are now level " + level + "!\n"
                     + "Max Life increased by 2\n"
+                    + "Mana increased by 1\n"
                     + "Strength increased by 1\n"
                     + "Dexterity increased by 1";
         }
@@ -221,7 +246,7 @@ public class Player extends Entity {
                     { "res/player/player_right/right1.png", "res/player/player_right/right2.png",
                             "res/player/player_right/right3.png", "res/player/player_right/right4.png",
                             "res/player/player_right/right5.png", "res/player/player_right/right6.png" },
-                    // Idle direction (4)
+                    // Legacy idle (4) - kept for compatibility
                     { "res/player/player_idle/idle1.png", "res/player/player_idle/idle2.png",
                             "res/player/player_idle/idle3.png", "res/player/player_idle/idle4.png",
                             "res/player/player_idle/idle5.png", "res/player/player_idle/idle6.png" }
@@ -231,6 +256,35 @@ public class Player extends Entity {
             for (int direction = 0; direction < imagePaths.length; direction++) {
                 for (int frame = 0; frame < imagePaths[direction].length; frame++) {
                     animationImages[direction][frame] = setup(imagePaths[direction][frame]);
+                }
+            }
+
+            // Load new directional idle animations (up/down/left/right)
+            String[][] idlePaths = {
+                    // up/back idle (files named idle_back1..6)
+                    { "res/player/player_idle_back/idle_back1.png", "res/player/player_idle_back/idle_back2.png",
+                            "res/player/player_idle_back/idle_back3.png", "res/player/player_idle_back/idle_back4.png",
+                            "res/player/player_idle_back/idle_back5.png",
+                            "res/player/player_idle_back/idle_back6.png" },
+                    // down/front idle (files named idle1..6)
+                    { "res/player/player_idle/idle1.png", "res/player/player_idle/idle2.png",
+                            "res/player/player_idle/idle3.png", "res/player/player_idle/idle4.png",
+                            "res/player/player_idle/idle5.png", "res/player/player_idle/idle6.png" },
+                    // left idle (files named idle_left0..5)
+                    { "res/player/player_idle_left/idle_left0.png", "res/player/player_idle_left/idle_left1.png",
+                            "res/player/player_idle_left/idle_left2.png", "res/player/player_idle_left/idle_left3.png",
+                            "res/player/player_idle_left/idle_left4.png",
+                            "res/player/player_idle_left/idle_left5.png" },
+                    // right idle (files named idle_right0..5)
+                    { "res/player/player_idle_right/idle_right0.png", "res/player/player_idle_right/idle_right1.png",
+                            "res/player/player_idle_right/idle_right2.png",
+                            "res/player/player_idle_right/idle_right3.png",
+                            "res/player/player_idle_right/idle_right4.png",
+                            "res/player/player_idle_right/idle_right5.png" }
+            };
+            for (int d = 0; d < 4; d++) {
+                for (int f = 0; f < 6; f++) {
+                    idleImages[d][f] = setup(idlePaths[d][f]);
                 }
             }
         } catch (Exception e) {
@@ -387,12 +441,16 @@ public class Player extends Entity {
                     gp.monster[i].solidArea.width,
                     gp.monster[i].solidArea.height);
             if (attackBox.intersects(monBox)) {
-                damageMonster(i);
+                damageMonster(i, attack);
                 hitSomeone = true;
                 // Enforce one-hit-per-attack and avoid multiple hit sounds
                 break;
             }
         }
+
+    // Break/despawn interactive tiles only if the attack box intersects them
+    damageInteractiveTilesByAttack(attackBox);
+
         if (!hitSomeone) {
             // Only play swing if we didn't hit anything
             gp.playSoundEffect(6);
@@ -420,6 +478,7 @@ public class Player extends Entity {
         if (gp.gameState == gp.dialogState) {
             // Keep idle animation during dialogue
             handleIdleState();
+            isIdle = true;
             return;
         }
 
@@ -428,6 +487,7 @@ public class Player extends Entity {
         if (attacking) {
             // During attack, update attack frames and skip movement
             updateAttack();
+            isIdle = false;
         } else if (isMoving) {
             // Handle movement and direction
             String newDirection = direction;
@@ -470,6 +530,13 @@ public class Player extends Entity {
             int monsterIndex = gp.cChecker.checkEntity(this, gp.monster);
             interactMonster(monsterIndex);
 
+            // Check interactive tile collision (trees, etc.). Don't destroy on movement.
+            int iTileBlockIndex = gp.cChecker.checkEntity(this, gp.iTile);
+            if (iTileBlockIndex != -1 && gp.iTile[iTileBlockIndex] != null && gp.iTile[iTileBlockIndex].collision) {
+                collisionOn = true;
+            }
+
+            // Do NOT destroy interactive tiles on movement; only attacks can break them
             // Only move if there's no collision
             if (!collisionOn) {
                 updatePosition();
@@ -477,8 +544,10 @@ public class Player extends Entity {
 
             updateMovementAnimation();
             resetIdleAnimation();
+            isIdle = false;
         } else {
             handleIdleState();
+            isIdle = true;
             // Even when idle, allow pickup if overlapping an object
             int objIndexIdle = gp.cChecker.checkObject(this, true);
             pickUpObject(objIndexIdle);
@@ -498,12 +567,60 @@ public class Player extends Entity {
             }
         }
 
+        if (gp.keyHandler.shortKeypress && !projectile.alive && shotAvailableCounter == 30
+                && projectile.hasResource(this) == true) {
+            String shootDir = direction;
+            if ("idle".equals(shootDir)) {
+                switch (lastFacingDirIndex) {
+                    case 0:
+                        shootDir = "up";
+                        break;
+                    case 1:
+                        shootDir = "down";
+                        break;
+                    case 2:
+                        shootDir = "left";
+                        break;
+                    case 3:
+                    default:
+                        shootDir = "right";
+                        break;
+                }
+            }
+            // Spawn from player center, then projectile applies its own directional offsets
+            int baseX = worldX + gp.tileSize / 2;
+            int baseY = worldY + gp.tileSize / 2;
+            projectile.set(baseX, baseY, shootDir, true, this); // shoot projectile
+
+            projectile.subtractResource(this);
+            // Add projectile to the game panel's projectile list
+            gp.projectileList.add(projectile);
+            shotAvailableCounter = 0;
+
+            // Shooting sound
+            gp.playSoundEffect(10);
+            // Consume the key so holding E doesn't spam
+            gp.keyHandler.shortKeypress = false;
+        }
+
         if (invincible) {
             invincibleCounter++;
             if (invincibleCounter > 60) { // Invincibility lasts for 60 frames (1 second)
                 invincible = false; // Reset invincibility
                 invincibleCounter = 0; // Reset counter
             }
+        }
+
+        if (shotAvailableCounter < 30) {
+            shotAvailableCounter++;
+        }
+
+        if (life > maxLife) {
+            life = maxLife;
+        }
+
+        if (mana > maxMana) {
+            mana = maxMana;
         }
 
         // Reset hit combo if no hit landed within 3 seconds
@@ -514,6 +631,53 @@ public class Player extends Entity {
             }
         }
 
+        // if (life <= 0) {
+        //     gp.gameState = gp.gameOverState;
+            
+        // }
+
+    }
+
+    public void damageInteractiveTile(int index) {
+        if (index != -1 && gp.iTile[index].destructible && gp.iTile[index].isCorrectItem(this)) {
+            generateParticles(gp.iTile[index], gp.iTile[index]);
+            gp.iTile[index] = null;
+        }
+    }
+
+    // New: Only break interactive tiles if the attack hitbox actually intersects them
+    private void damageInteractiveTilesByAttack(Rectangle attackBox) {
+        int hitIndex = -1;
+        for (int i = 0; i < gp.iTile.length; i++) {
+            if (gp.iTile[i] == null)
+                continue;
+            if (!gp.iTile[i].destructible)
+                continue;
+            if (!gp.iTile[i].isCorrectItem(this))
+                continue; // e.g., require axe for trees
+
+            Rectangle tileBox = new Rectangle(
+                    gp.iTile[i].worldX + gp.iTile[i].solidAreaDefaultX,
+                    gp.iTile[i].worldY + gp.iTile[i].solidAreaDefaultY,
+                    gp.iTile[i].solidArea.width,
+                    gp.iTile[i].solidArea.height);
+
+            if (attackBox.intersects(tileBox)) {
+                hitIndex = i;
+                break; // break only one tile per swing
+            }
+        }
+
+        if (hitIndex != -1 && !gp.iTile[hitIndex].invincible ) {
+            gp.iTile[hitIndex].playSE();
+            gp.iTile[hitIndex].life--;
+            // Generate visible wood chip particles at the tile
+            generateParticles(gp.iTile[hitIndex], gp.iTile[hitIndex]);
+            gp.iTile[hitIndex].invincible = true;
+            if (gp.iTile[hitIndex].life <= 0) {
+                gp.iTile[hitIndex] = gp.iTile[hitIndex].getDestroyedForm();
+            }
+        }
     }
 
     private void updatePosition() {
@@ -548,7 +712,7 @@ public class Player extends Entity {
     }
 
     private void handleIdleState() {
-        direction = "idle";
+        // Keep the last facing direction; do not switch to a generic 'idle'
         spriteNum = 1;
         spriteCounter = 0;
 
@@ -563,18 +727,26 @@ public class Player extends Entity {
         // Handle picking up an object
         if (index != -1) { // -1 means no object collision
             Entity obj = gp.obj[index];
-            if (inventory.size() < inventorySize) {
-                // If it's a key, force its icon to the default key picture for inventory
-                if (obj instanceof OBJ_Key) {
-                    obj.down1 = setup("res/objects/key/keys_1_1.png");
-                }
-                inventory.add(obj); // Keep keys (and other items) in the inventory
-                gp.playSoundEffect(1);
-                gp.ui.addMessage("Got a " + obj.name + "!");
+
+            if (obj.type == TYPE_PICKUP_ONLY) {
+                obj.use(this); // Apply its effect immediately
                 gp.obj[index] = null; // Remove from map
+                return;
             } else {
-                gp.ui.addMessage("You cannot carry any more items!");
+                if (inventory.size() < inventorySize) {
+                    // If it's a key, force its icon to the default key picture for inventory
+                    if (obj instanceof OBJ_Key) {
+                        obj.down1 = setup("res/objects/key/keys_1_1.png");
+                    }
+                    inventory.add(obj); // Keep keys (and other items) in the inventory
+                    gp.playSoundEffect(1);
+                    gp.ui.addMessage("Got a " + obj.name + "!");
+                    gp.obj[index] = null; // Remove from map
+                } else {
+                    gp.ui.addMessage("You cannot carry any more items!");
+                }
             }
+
         }
     }
 
@@ -583,8 +755,8 @@ public class Player extends Entity {
     }
 
     public void selectItem() {
-        int itemIndex = gp.ui.getItemIndexOnslot();
-        if (itemIndex != -1) {
+    int itemIndex = gp.ui.getItemIndexOnslot();
+    if (itemIndex != -1 && itemIndex < inventory.size()) {
             Entity selectedItem = inventory.get(itemIndex);
 
             if (selectedItem.type == TYPE_SWORD || selectedItem.type == TYPE_AXE) {
@@ -601,7 +773,7 @@ public class Player extends Entity {
                 // Use consumable
                 selectedItem.use(this);
                 inventory.remove(itemIndex);
-            } 
+            }
         }
     }
 
@@ -612,36 +784,36 @@ public class Player extends Entity {
         int frameIndex = Math.min(spriteNum - 1, 5); // Ensure frame index is within bounds
         int directionIndex;
 
-        switch (direction) {
-            case "up":
-                directionIndex = 0;
-                image = attacking ? attackImages[0][attackFrameIndex] : animationImages[directionIndex][frameIndex];
-                break;
-            case "down":
-                directionIndex = 1;
-                image = attacking ? attackImages[1][attackFrameIndex] : animationImages[directionIndex][frameIndex];
-                break;
-            case "left":
-                directionIndex = 2;
-                image = attacking ? attackImages[2][attackFrameIndex] : animationImages[directionIndex][frameIndex];
-                break;
-            case "right":
-                directionIndex = 3;
-                image = attacking ? attackImages[3][attackFrameIndex] : animationImages[directionIndex][frameIndex];
-                break;
-            case "idle":
-                if (attacking) {
-                    image = attackImages[lastFacingDirIndex][attackFrameIndex];
-                } else {
-                    directionIndex = 4;
-                    int idleFrameIndex = Math.min(idleFrame - 1, 5);
-                    image = animationImages[directionIndex][idleFrameIndex];
-                }
-                break;
-            default:
-                // Default fallback
-                image = animationImages[1][0]; // Down direction, first frame
-                break;
+        if (attacking) {
+            // Attack uses last facing direction
+            image = attackImages[lastFacingDirIndex][attackFrameIndex];
+        } else if (isIdle) {
+            // Idle uses directional idle set by last facing
+            int idleIdx = Math.min(idleFrame - 1, 5);
+            image = idleImages[lastFacingDirIndex][idleIdx];
+            // If any idle frame missing, gracefully fall back to walk frame
+            if (image == null) {
+                int walkDir = lastFacingDirIndex;
+                image = animationImages[walkDir][frameIndex];
+            }
+        } else {
+            // Moving: use walk cycles based on current direction
+            switch (direction) {
+                case "up":
+                    directionIndex = 0;
+                    break;
+                case "down":
+                    directionIndex = 1;
+                    break;
+                case "left":
+                    directionIndex = 2;
+                    break;
+                case "right":
+                default:
+                    directionIndex = 3;
+                    break;
+            }
+            image = animationImages[directionIndex][frameIndex];
         }
 
         // Apply invincibility transparency BEFORE drawing, and restore after

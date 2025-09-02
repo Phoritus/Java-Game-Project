@@ -102,6 +102,10 @@ public class CollisionChecker {
 
         for (int i = 0; i < targetEntities.length; i++) {
             if (targetEntities[i] != null && targetEntities[i] != entity) { // Skip self-collision check
+                // Skip dead or dying targets for collision/interaction
+                if (!targetEntities[i].alive || targetEntities[i].dying) {
+                    continue;
+                }
                 // Get the entity's solid area position after potential movement
                 entity.solidArea.x = entity.worldX + entity.solidArea.x;
                 entity.solidArea.y = entity.worldY + entity.solidArea.y;
@@ -126,12 +130,13 @@ public class CollisionChecker {
                 targetEntities[i].solidArea.x = targetEntities[i].worldX + targetEntities[i].solidAreaDefaultX;
                 targetEntities[i].solidArea.y = targetEntities[i].worldY + targetEntities[i].solidAreaDefaultY;
 
-                // Check for collision
+                // Check for collision/overlap
                 if (entity.solidArea.intersects(targetEntities[i].solidArea)) {
-                    if (targetEntities[i] != entity) {
+                    // Only block movement if the target is collidable
+                    if (targetEntities[i] != entity && targetEntities[i].collision) {
                         entity.collisionOn = true;
                     }
-                    index = i; // Return the index of the collided entity
+                    index = i; // Return the index of the overlapped entity (for interactions)
                 }
 
                 // Reset solid area positions
@@ -149,6 +154,10 @@ public class CollisionChecker {
         int index = -1;
         for (int i = 0; i < targetEntities.length; i++) {
             if (targetEntities[i] != null && targetEntities[i] != entity) {
+                // Ignore dead or dying targets for overlap checks
+                if (!targetEntities[i].alive || targetEntities[i].dying) {
+                    continue;
+                }
                 // Use current world positions with default offsets
                 entity.solidArea.x = entity.worldX + entity.solidAreaDefaultX;
                 entity.solidArea.y = entity.worldY + entity.solidAreaDefaultY;
@@ -183,6 +192,9 @@ public class CollisionChecker {
 
         for (int i = 0; i < targetEntities.length; i++) {
             if (targetEntities[i] != null && targetEntities[i] != entity) {
+                if (!targetEntities[i].alive || targetEntities[i].dying) {
+                    continue;
+                }
                 Rectangle targetArea = new Rectangle(
                     targetEntities[i].worldX + targetEntities[i].solidAreaDefaultX,
                     targetEntities[i].worldY + targetEntities[i].solidAreaDefaultY,
@@ -204,6 +216,10 @@ public class CollisionChecker {
         boolean contactPlayer = false;
 
         if (gp.player != null && entity != gp.player) { // Make sure it's not the player checking itself
+            // If the entity is dead or dying (e.g., fading out), it shouldn't hurt or block the player
+            if (!entity.alive || entity.dying) {
+                return false;
+            }
             // Position rectangles in world space using default offsets
             entity.solidArea.x = entity.worldX + entity.solidAreaDefaultX;
             entity.solidArea.y = entity.worldY + entity.solidAreaDefaultY;

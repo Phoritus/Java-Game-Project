@@ -4,9 +4,13 @@ import src.entity.NPC_OldMan;
 import src.monster.MonBlueSlime;
 import src.object.OBJ_Axe;
 import src.object.OBJ_Boot;
+import src.object.OBJ_Coin;
 import src.object.OBJ_Key;
+import src.object.OBJ_ManaCrystal;
 import src.object.OBJ_Potion;
+import src.tiles_interactive.IT_DryTree;
 import src.object.OBJ_Demon_shield;
+import src.object.OBJ_Heart;
 
 public class AssetSetter {
     
@@ -18,13 +22,13 @@ public class AssetSetter {
 
     public void setObject() {
         int i = 0;
-        gp.obj[i] = new OBJ_Key(gp);
-        gp.obj[i].worldX = gp.tileSize * 25; // Position the key in the world
-        gp.obj[i].worldY = gp.tileSize * 19; // Position the key in the world
+        gp.obj[i] = new OBJ_Coin(gp);
+        gp.obj[i].worldX = gp.tileSize * 25; // Position the coin in the world
+        gp.obj[i].worldY = gp.tileSize * 19; // Position the coin in the world
         i++;
-        gp.obj[i] = new OBJ_Key(gp);
-        gp.obj[i].worldX = gp.tileSize * 25; // Position the boot in the world
-        gp.obj[i].worldY = gp.tileSize * 23; // Position the boot in the world
+        gp.obj[i] = new OBJ_Coin(gp);
+        gp.obj[i].worldX = gp.tileSize * 25; // Position the coin in the world
+        gp.obj[i].worldY = gp.tileSize * 23; // Position the coin in the world
         i++;
         gp.obj[i] = new OBJ_Key(gp);
         gp.obj[i].worldX = gp.tileSize * 21; // Position the boot in the world
@@ -41,6 +45,18 @@ public class AssetSetter {
         gp.obj[i] = new OBJ_Potion(gp);
         gp.obj[i].worldX = gp.tileSize * 22; // Position the potion in the world
         gp.obj[i].worldY = gp.tileSize * 21; // Position the potion in the world
+        i++;
+        gp.obj[i] = new OBJ_Heart(gp);
+        gp.obj[i].worldX = gp.tileSize * 22; // Position the heart in the world
+        gp.obj[i].worldY = gp.tileSize * 25; // Position the heart in the world
+        i++;
+        gp.obj[i] = new OBJ_Heart(gp);
+        gp.obj[i].worldX = gp.tileSize * 22; // Position the heart in the world
+        gp.obj[i].worldY = gp.tileSize * 30; // Position the heart in the world
+        i++;
+        gp.obj[i] = new OBJ_ManaCrystal(gp);
+        gp.obj[i].worldX = gp.tileSize * 22; // Position the mana crystal in the world
+        gp.obj[i].worldY = gp.tileSize * 14; // Position the mana crystal in the world
         i++;
     }
 
@@ -74,5 +90,23 @@ public class AssetSetter {
         gp.monster[i] = new MonBlueSlime(gp);
         gp.monster[i].worldX = gp.tileSize * 38; // Set initial position
         gp.monster[i].worldY = gp.tileSize * 42; // Set initial position
+    }
+
+    public void setInteractiveTile() {
+        int i = 0;
+        gp.iTile[i] = new IT_DryTree(gp, 27, 12);
+        i++;
+        gp.iTile[i] = new IT_DryTree(gp, 28, 12);
+        i++;
+        gp.iTile[i] = new IT_DryTree(gp, 29, 12);
+        i++;
+        gp.iTile[i] = new IT_DryTree(gp, 30, 12);
+        i++;
+        gp.iTile[i] = new IT_DryTree(gp, 31, 12);
+        i++;
+        gp.iTile[i] = new IT_DryTree(gp, 32, 12);
+        i++;
+        gp.iTile[i] = new IT_DryTree(gp, 33, 12);
+        i++;
     }
 }
