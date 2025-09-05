@@ -43,6 +43,7 @@ public class KeyHandler implements KeyListener {
                 if (gp.ui.commandNumber == 0) {
                     // NEW GAME
                     gp.gameState = gp.playState;
+                    gp.playMusic(0);
                 } else if (gp.ui.commandNumber == 1) {
                     // LOAD GAME (not implemented yet)
                     gp.gameState = gp.playState; // For now, just start the game
@@ -78,51 +79,34 @@ public class KeyHandler implements KeyListener {
             } else if (keyCode == KeyEvent.VK_T) {
                 // Handle T key for teleport
                 tPressed = true;
-            } if (keyCode == KeyEvent.VK_ESCAPE) {
+            }
+            if (keyCode == KeyEvent.VK_ESCAPE) {
                 gp.gameState = gp.optionState;
                 return; // Stop further handling so we don't immediately exit options
             }
             if (keyCode == KeyEvent.VK_E) {
                 shortKeypress = true;
-            } if (keyCode == KeyEvent.VK_C) {
+            }
+            if (keyCode == KeyEvent.VK_C) {
                 // Enter character screen; navigation handled below when in characterState
                 gp.gameState = gp.characterState;
                 return;
-            } 
+            }
 
         }
 
         // Character screen navigation and exit
         if (gp.gameState == gp.characterState) {
-            if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
-                if (gp.ui.slotRow > 0) {
-                    gp.ui.slotRow--;
-                    gp.playSoundEffect(9);
-                }
-            }if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
-                if (gp.ui.slotRow < gp.ui.inventoryRows - 1) {
-                    gp.ui.slotRow++;
-                    gp.playSoundEffect(9);
-                }
-            } if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
-                if (gp.ui.slotCol > 0) {
-                    gp.ui.slotCol--;
-                    gp.playSoundEffect(9);
-                }
-            } if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
-                // Move right within dynamic column bounds
-                if (gp.ui.slotCol < gp.ui.inventoryCols - 1) {
-                    gp.ui.slotCol++;
-                    gp.playSoundEffect(9);
-                }
-            } if (keyCode == KeyEvent.VK_C || keyCode == KeyEvent.VK_ESCAPE) {
+            playerInventory(keyCode); // Handle inventory navigation
+            if (keyCode == KeyEvent.VK_C || keyCode == KeyEvent.VK_ESCAPE) {
                 // Exit character screen
                 gp.gameState = gp.playState;
                 return;
-            } if (keyCode == KeyEvent.VK_ENTER) {
+            }
+            if (keyCode == KeyEvent.VK_ENTER) {
                 // Confirm selection
                 // Ensure the cursor doesn't point past the end of the inventory list
-                int index = gp.ui.getItemIndexOnslot();
+                int index = gp.ui.getItemIndexOnslot(gp.ui.playerSlotCol, gp.ui.playerSlotRow);
                 if (index >= gp.player.inventory.size()) {
                     return;
                 }
@@ -130,13 +114,6 @@ public class KeyHandler implements KeyListener {
             }
             // Consume input in character screen so it doesn't affect gameplay
             return;
-        }
-
-        // Pause and music controls
-        if (keyCode == KeyEvent.VK_M) {
-            // Toggle music on/off
-            gp.toggleMusic();
-            System.out.println("Music toggled: " + (gp.musicOn ? "ON" : "OFF"));
         }
 
         // Dialogue control
@@ -160,7 +137,73 @@ public class KeyHandler implements KeyListener {
                 return;
             }
             // swallow other keys while options open
+            int maxCommandNum = 0;
+            switch (gp.ui.subState) {
+                case 0:
+                    maxCommandNum = 5; // For example, if there are 5 commands (0, 1, 2, 3, 4)
+                    break;
+                case 1:
+                    maxCommandNum = 1; // Apply (0) / Back (1) on fullscreen notice
+                    break;
+
+                case 3:
+                    maxCommandNum = 1;
+                    break;
+            }
+            if (keyCode == KeyEvent.VK_W) {
+                gp.ui.commandNumber--;
+                gp.playSoundEffect(9);
+                if (gp.ui.commandNumber < 0) {
+                    gp.ui.commandNumber = maxCommandNum;
+                }
+            }
+            if (keyCode == KeyEvent.VK_S) {
+                gp.ui.commandNumber++;
+                gp.playSoundEffect(9);
+                if (gp.ui.commandNumber > maxCommandNum) {
+                    gp.ui.commandNumber = 0;
+                }
+            }
+
+            if (keyCode == KeyEvent.VK_A) {
+                if (gp.ui.subState == 0) {
+                    if (gp.ui.commandNumber == 1 && gp.music.volumeScale > 0) { // Music volume
+                        gp.music.volumeScale--;
+                        gp.music.checkVolume();
+                        gp.playSoundEffect(9);
+                        gp.config.saveConfig();
+                    }
+
+                    if (gp.ui.commandNumber == 2 && gp.se.volumeScale > 0) { // Sound effects volume
+                        gp.se.volumeScale--;
+                        gp.playSoundEffect(9);
+                        gp.config.saveConfig();
+                    }
+
+                }
+            }
+            if (keyCode == KeyEvent.VK_D) {
+                if (gp.ui.subState == 0) {
+                    if (gp.ui.commandNumber == 1 && gp.music.volumeScale < 5) { // Music volume
+                        gp.music.volumeScale++;
+                        gp.music.checkVolume();
+                        gp.playSoundEffect(9);
+                        gp.config.saveConfig();
+                    }
+                    if (gp.ui.commandNumber == 2 && gp.se.volumeScale < 5) { // Sound effects volume
+                        gp.se.volumeScale++;
+                        gp.playSoundEffect(9);
+                        gp.config.saveConfig();
+                    }
+
+                }
+            }
+
             return;
+        }
+
+        if (gp.gameState == gp.tradeState) {
+            tradeState(keyCode);
         }
 
         // Debugging output
@@ -172,10 +215,164 @@ public class KeyHandler implements KeyListener {
             }
         }
 
-        if (keyCode == KeyEvent.VK_F2) {
-            gp.tileManager.loadMap("/res/maps/worldV2.txt");
+        if (gp.gameState == gp.gameOverState) {
+            gameOverState(keyCode);
         }
 
+        if (keyCode == KeyEvent.VK_F2) {
+            switch (gp.currentMap) {
+                case 0:
+                    gp.tileManager.loadMap("/res/maps/worldV2.txt", 1);
+                    break;
+                case 1:
+                    gp.tileManager.loadMap("/res/maps/interior01.txt", 0);
+                    break;
+            }
+        }
+
+    }
+
+    public void tradeState(int code) {
+        // Navigate
+        if (code == KeyEvent.VK_F) {
+            // Keep F as an alias for confirm if desired
+            enterPressed = true;
+            // Also flag fPressed so UI-based handlers can react during trade screens
+            fPressed = true;
+        }
+
+        if (gp.ui.subState == 0) {
+            if (code == KeyEvent.VK_W) {
+                gp.ui.commandNumber--;
+                if (gp.ui.commandNumber < 0) {
+                    gp.ui.commandNumber = 2;
+                }
+                gp.playSoundEffect(9);
+            }
+
+            if (code == KeyEvent.VK_S) {
+                gp.ui.commandNumber++;
+                if (gp.ui.commandNumber > 2) {
+                    gp.ui.commandNumber = 0;
+                }
+                gp.playSoundEffect(9);
+            }
+
+            // Confirm selection with Enter (or F alias)
+            if (code == KeyEvent.VK_ENTER || (enterPressed && code == KeyEvent.VK_F)) {
+                if (gp.ui.commandNumber == 0) {
+                    gp.ui.subState = 1; // Buy
+                } else if (gp.ui.commandNumber == 1) {
+                    gp.ui.subState = 2; // Sell
+                } else if (gp.ui.commandNumber == 2) {
+                    // Leave → show farewell dialogue
+                    gp.ui.commandNumber = 0;
+                    gp.gameState = gp.dialogState;
+                    gp.ui.currentDialogue = "He he, come back anytime.";
+                }
+                enterPressed = false; // consume
+            }
+        }
+
+        if (gp.ui.subState == 1) {
+            npcInventory(code);
+            if (code == KeyEvent.VK_ESCAPE) {
+                gp.ui.subState = 0;
+            }
+        }
+        if (gp.ui.subState == 2) {
+            playerInventory(code);
+            if (code == KeyEvent.VK_ESCAPE) {
+                gp.ui.subState = 0;
+            }
+        }
+
+    }
+
+    public void gameOverState(int code) {
+        if (code == KeyEvent.VK_W) {
+            gp.ui.commandNumber--;
+            if (gp.ui.commandNumber < 0) {
+                gp.ui.commandNumber = 1;
+            }
+            gp.playSoundEffect(9);
+        }
+
+        if (code == KeyEvent.VK_S) {
+            gp.ui.commandNumber++;
+            if (gp.ui.commandNumber > 1) {
+                gp.ui.commandNumber = 0;
+            }
+            gp.playSoundEffect(9);
+        }
+
+        if (code == KeyEvent.VK_ENTER) {
+            if (gp.ui.commandNumber == 0) {
+                gp.gameState = gp.playState;
+                gp.retry();
+            } else if (gp.ui.commandNumber == 1) {
+                gp.gameState = gp.titleState;
+                gp.restart();
+            }
+        }
+    }
+
+    public void playerInventory(int keyCode) {
+        // Vertical movement: rows (W/UP = up, S/DOWN = down)
+        if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
+            if (gp.ui.playerSlotRow > 0) {
+                gp.ui.playerSlotRow--;
+                gp.playSoundEffect(9);
+            }
+        }
+        if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
+            if (gp.ui.playerSlotRow < gp.ui.inventoryRows - 1) {
+                gp.ui.playerSlotRow++;
+                gp.playSoundEffect(9);
+            }
+        }
+        // Horizontal movement: columns (A/LEFT = left, D/RIGHT = right)
+        if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
+            if (gp.ui.playerSlotCol > 0) {
+                gp.ui.playerSlotCol--;
+                gp.playSoundEffect(9);
+            }
+        }
+        if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
+            if (gp.ui.playerSlotCol < gp.ui.inventoryCols - 1) {
+                gp.ui.playerSlotCol++;
+                gp.playSoundEffect(9);
+            }
+        }
+    }
+
+    public void npcInventory(int keyCode) {
+        // Vertical movement: rows (W/UP = up, S/DOWN = down)
+        if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
+            if (gp.ui.npcSlotRow > 0) {
+                gp.ui.npcSlotRow--;
+                gp.playSoundEffect(9);
+            }
+        }
+        if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
+            if (gp.ui.npcSlotRow < gp.ui.inventoryRows - 1) {
+                gp.ui.npcSlotRow++;
+                gp.playSoundEffect(9);
+            }
+        }
+        // Horizontal movement: columns (A/LEFT = left, D/RIGHT = right)
+        if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
+            if (gp.ui.npcSlotCol > 0) {
+                gp.ui.npcSlotCol--;
+                gp.playSoundEffect(9);
+            }
+        }
+        if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
+            if (gp.ui.npcSlotCol < gp.ui.inventoryCols - 1) {
+                gp.ui.npcSlotCol++;
+                gp.playSoundEffect(9);
+            }
+        }
     }
 
     @Override
@@ -194,7 +391,8 @@ public class KeyHandler implements KeyListener {
             fPressed = false; // Reset F key state
         } else if (keyCode == KeyEvent.VK_T) {
             tPressed = false; // Reset T key state
-        } if (keyCode == KeyEvent.VK_E) {
+        }
+        if (keyCode == KeyEvent.VK_E) {
             // Reset short press flag when E is released to prevent spamming
             shortKeypress = false;
         }

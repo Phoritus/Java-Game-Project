@@ -12,6 +12,7 @@ public class OBJ_Key extends Entity {
     public OBJ_Key(GamePanel gp) {
         super(gp);
         name = "Key";
+        price = 5;
 
         // Load animation frames for the key spin
         BufferedImage[] frames = new BufferedImage[4];

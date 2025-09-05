@@ -11,7 +11,8 @@ public class OBJ_Demon_shield extends Entity {
         name = "Demon Shield";
         type = TYPE_SHIELD;
         down1 = setup("/res/objects/demon_shield.png");
-        defense = 5;
+        defenseValue = 8;
+        price = 50;
         description = "[ " + name + " ]\n" +
                       "A shield made from\ndemon scales.";
     }

@@ -11,7 +11,6 @@ import java.awt.Rectangle;
 
 public class NPC_OldMan extends Entity {
 
-
     // Animation images for all directions
     public BufferedImage[][] animationImages = new BufferedImage[5][]; // [direction][frame]
     // 0=up, 1=down, 2=left, 3=right, 4=idle
@@ -20,7 +19,7 @@ public class NPC_OldMan extends Entity {
     public int animationCounter = 0;
     public int animationSpeed = 10; // Change frame every 10 game updates
     public int currentFrame = 0;
-    
+
     // Dialogue cooldown to prevent immediate movement after talking
     public int dialogueCooldown = 0;
 
@@ -29,8 +28,8 @@ public class NPC_OldMan extends Entity {
 
         direction = "idle"; // Default direction for the NPC (idle animation)
         speed = 1; // NPCs typically do not move, so speed is set to 1
-    type = TYPE_NPC; // Ensure this entity is recognized as an NPC
-    collision = true; // NPC should be solid (block player and other entities)
+        type = TYPE_NPC; // Ensure this entity is recognized as an NPC
+        collision = true; // NPC should be solid (block player and other entities)
 
         getNPCImage(); // Load the priest images
         setDialogue(); // Set initial dialogue for the NPC
@@ -164,8 +163,9 @@ public class NPC_OldMan extends Entity {
 
             // Display hit/collision box for debugging
             // g2.setColor(Color.RED);
-            // g2.drawRect(screenX + solidArea.x, screenY + solidArea.y, solidArea.width, solidArea.height);
-        }        
+            // g2.drawRect(screenX + solidArea.x, screenY + solidArea.y, solidArea.width,
+            // solidArea.height);
+        }
     }
 
     public void setAction() {
@@ -175,7 +175,7 @@ public class NPC_OldMan extends Entity {
             direction = "idle"; // Stay idle during cooldown
             return;
         }
-        
+
         // Only move when not in dialogue mode
         if (gp.gameState != gp.dialogState) {
             actionLockCounter++;
@@ -207,7 +207,7 @@ public class NPC_OldMan extends Entity {
         if (dialogues[dialogueIndex] != null) {
             gp.ui.currentDialogue = dialogues[dialogueIndex];
             dialogueIndex++;
-            
+
             // Reset dialogue index if we've reached the end
             if (dialogueIndex >= dialogues.length || dialogues[dialogueIndex] == null) {
                 dialogueIndex = 0;

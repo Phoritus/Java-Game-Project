@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.awt.Graphics2D;
 
 import src.entity.Entity;
+import src.entity.Player;
 import src.main.GamePanel;
 import src.main.UtilityTool;
 
@@ -14,8 +15,9 @@ public class OBJ_Boot extends Entity {
     public OBJ_Boot(GamePanel gp) {
         super(gp);
         name = "Boot";
-        collision = true; // Boots do not have collision
-        
+        // Boots should not change speed when spawned; apply on pickup via use().
+        type = TYPE_PICKUP_ONLY;
+
         // Load animation frames
         BufferedImage[] bootFrames = new BufferedImage[2];
         
@@ -90,6 +92,22 @@ public class OBJ_Boot extends Entity {
     public void resetAnimation() {
         if (animation != null) {
             animation.reset();
+        }
+    }
+
+    @Override
+    public void use(Entity entity) {
+        // When picked up by the player, grant a speed bonus once
+        if (entity instanceof Player) {
+            Player p = (Player) entity;
+            if (!p.hasBoots) {
+                p.speedBonus += 2;
+                p.hasBoots = true;
+                gp.playSoundEffect(2); // boots speed SFX
+                gp.ui.addMessage("Speed up!");
+            } else {
+                // Already applied; ignore duplicates
+            }
         }
     }
 }

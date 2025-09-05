@@ -8,12 +8,10 @@ import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Composite;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import java.awt.RenderingHints;
 import src.main.UtilityTool;
-import src.object.OBJ_Axe;
 import src.object.OBJ_Fireball;
 import src.object.OBJ_Key;
 import src.object.OBJ_Normal_Sword;
@@ -35,8 +33,6 @@ public class Player extends Entity {
     public int idleFrame = 1;
     private boolean isIdle = false;
     private int lastFacingDirIndex = 1; // 0=up,1=down,2=left,3=right
-    public ArrayList<Entity> inventory = new ArrayList<>();
-    public final int inventorySize = 30; // Maximum inventory slots (6x5 grid)
 
     // Attack animation state
     public BufferedImage[][] attackImages = new BufferedImage[4][4]; // [up,down,left,right][frame]
@@ -49,6 +45,11 @@ public class Player extends Entity {
     // Combo tracking for hit stacks
     private int hitComboCount = 0;
     private long lastHitMillis = 0L;
+    // Throttle for repeating UI hints (e.g., bumping into locked door without key)
+    private long lastNeedKeyMsgMillis = 0L;
+    // Movement modifiers
+    public int speedBonus = 0; // additive bonus to base speed (e.g., boots)
+    public boolean hasBoots = false;
 
     public Player(GamePanel gp, KeyHandler keyH) {
         super(gp);
@@ -72,9 +73,11 @@ public class Player extends Entity {
     }
 
     public void setDefaultValues() {
+        // worldX = gp.tileSize * 12; // Initial X position - center of 50x50 map
+        // worldY = gp.tileSize * 10; // Initial Y position - center of 50x50 map
         worldX = gp.tileSize * 23; // Initial X position - center of 50x50 map
         worldY = gp.tileSize * 14; // Initial Y position - center of 50x50 map
-        speed = 4; // Speed of player movement - fixed at 4
+        // speed = 4; // Base speed
         direction = "down"; // Default direction
 
         // Player status
@@ -87,11 +90,14 @@ public class Player extends Entity {
         ammo = 10;
         nextLevelExp = 5;
         coin = 0;
+        // Inventory capacity (used by UI buy and item pickups)
+        // Default matches UI grid (inventoryCols x inventoryRows = 5 x 4 = 20)
+        // You can tweak at runtime if you change UI layout.
+        this.maxInventorySize = 20;
         // Initialize mana so UI can render crystals
         maxMana = 4;
         mana = maxMana;
-        //currentWeapon = new OBJ_Normal_Sword(gp);
-        currentWeapon = new OBJ_Axe(gp);
+        currentWeapon = new OBJ_Normal_Sword(gp);
         currentShield = new OBJ_Premium_Shield(gp);
         projectile = new OBJ_Fireball(gp);
         // projectile = new OBJ_Rock(gp);
@@ -99,11 +105,30 @@ public class Player extends Entity {
         defense = getDefense(); // Calculate initial defense value
     }
 
+    public void setDefaultPositions() {
+        worldX = gp.tileSize * 23; // Initial X position - center of 50x50 map
+        worldY = gp.tileSize * 14; // Initial Y position - center of 50x50 map
+        direction = "down"; // Default direction
+        attacking = false;
+        attackFrameIndex = 0;
+        attackAnimCounter = 0;
+        attackHitChecked = false;
+        idleCounter = 0;
+        idleFrame = 1;
+        isIdle = false;
+        lastFacingDirIndex = 1; // 0=up,1=down,2=left,3=right
+    }
+
+    public void restoreLifeAndMana() {
+        life = maxLife;
+        mana = maxMana;
+        invincible = false;
+    }
+
     public void setItems() {
+        inventory.clear();
         inventory.add(currentWeapon);
         inventory.add(currentShield);
-        inventory.add(new OBJ_Key(gp));
-        inventory.add(new OBJ_Key(gp));
         // Ensure keys in starting inventory show the default key picture in inventory
         for (Entity it : inventory) {
             if (it instanceof OBJ_Key) {
@@ -111,6 +136,9 @@ public class Player extends Entity {
             }
         }
     }
+
+    // Max inventory slots allowed for the player
+    public int maxInventorySize;
 
     public int getAttack() {
         attackArea = currentWeapon.attackArea;
@@ -126,7 +154,7 @@ public class Player extends Entity {
         // Talk with F key only
         if (index != -1 && gp.keyHandler.fPressed) {
             gp.gameState = gp.dialogState; // Change game state to dialog
-            gp.npc[index].speak(); // Call the speak method of the NPC
+            gp.npc[gp.currentMap][index].speak(); // Call the speak method of the NPC
             gp.keyHandler.fPressed = false; // Reset F after successful interaction
         }
     }
@@ -134,7 +162,7 @@ public class Player extends Entity {
     public void interactMonster(int index) {
         if (index == -1)
             return; // No monster contact
-        Entity m = gp.monster[index];
+        Entity m = gp.monster[gp.currentMap][index];
         if (m == null)
             return;
         // Only apply contact damage here if the monster is alive and NOT dying,
@@ -156,9 +184,9 @@ public class Player extends Entity {
     }
 
     public void damageMonster(int index, int attack) {
-        if (index < 0 || index >= gp.monster.length)
+        if (index < 0 || index >= gp.monster[0].length)
             return;
-        Entity m = gp.monster[index];
+        Entity m = gp.monster[gp.currentMap][index];
         if (m == null)
             return;
         if (!m.alive || m.dying)
@@ -169,7 +197,7 @@ public class Player extends Entity {
             return; // already hit recently
 
         gp.playSoundEffect(5);
-        int damage = attack - gp.monster[index].defense;
+        int damage = attack - gp.monster[gp.currentMap][index].defense;
         if (damage < 0)
             damage = 0;
         m.life -= damage;
@@ -192,11 +220,11 @@ public class Player extends Entity {
         if (m.life <= 0) {
             // Enter dying state and stop normal updates; removal happens after fade
             gp.ui.addMessage("Killed " + m.name);
-            gp.ui.addMessage("Exp +" + gp.monster[index].exp);
+            gp.ui.addMessage("Exp +" + gp.monster[gp.currentMap][index].exp);
             m.dying = true;
             m.alive = false;
             m.invincible = false;
-            exp += gp.monster[index].exp; // Gain exp from monster
+            exp += gp.monster[gp.currentMap][index].exp; // Gain exp from monster
             checkLevelUp();
         }
     }
@@ -432,14 +460,14 @@ public class Player extends Entity {
 
         // Check against monsters; if we hit at least one, don't play swing SFX
         boolean hitSomeone = false;
-        for (int i = 0; i < gp.monster.length; i++) {
-            if (gp.monster[i] == null)
+        for (int i = 0; i < gp.monster[0].length; i++) {
+            if (gp.monster[gp.currentMap][i] == null)
                 continue;
             Rectangle monBox = new Rectangle(
-                    gp.monster[i].worldX + gp.monster[i].solidAreaDefaultX,
-                    gp.monster[i].worldY + gp.monster[i].solidAreaDefaultY,
-                    gp.monster[i].solidArea.width,
-                    gp.monster[i].solidArea.height);
+                    gp.monster[gp.currentMap][i].worldX + gp.monster[gp.currentMap][i].solidAreaDefaultX,
+                    gp.monster[gp.currentMap][i].worldY + gp.monster[gp.currentMap][i].solidAreaDefaultY,
+                    gp.monster[gp.currentMap][i].solidArea.width,
+                    gp.monster[gp.currentMap][i].solidArea.height);
             if (attackBox.intersects(monBox)) {
                 damageMonster(i, attack);
                 hitSomeone = true;
@@ -448,8 +476,8 @@ public class Player extends Entity {
             }
         }
 
-    // Break/despawn interactive tiles only if the attack box intersects them
-    damageInteractiveTilesByAttack(attackBox);
+        // Break/despawn interactive tiles only if the attack box intersects them
+        damageInteractiveTilesByAttack(attackBox);
 
         if (!hitSomeone) {
             // Only play swing if we didn't hit anything
@@ -471,8 +499,8 @@ public class Player extends Entity {
     }
 
     public void update() {
-        // Force speed to be 4 always (prevent speed bugs)
-        speed = 4;
+        // Recalculate effective speed each tick: base 4 + bonus
+        speed = 4 + Math.max(0, speedBonus);
 
         // Don't update player movement during dialogue
         if (gp.gameState == gp.dialogState) {
@@ -513,6 +541,8 @@ public class Player extends Entity {
 
             // Check collision first before moving
             collisionOn = false;
+
+            // Debug collision bypass
             gp.cChecker.checkTile(this);
 
             // Check for object collisions and handle them
@@ -532,7 +562,8 @@ public class Player extends Entity {
 
             // Check interactive tile collision (trees, etc.). Don't destroy on movement.
             int iTileBlockIndex = gp.cChecker.checkEntity(this, gp.iTile);
-            if (iTileBlockIndex != -1 && gp.iTile[iTileBlockIndex] != null && gp.iTile[iTileBlockIndex].collision) {
+            if (iTileBlockIndex != -1 && gp.iTile[gp.currentMap][iTileBlockIndex] != null
+                    && gp.iTile[gp.currentMap][iTileBlockIndex].collision) {
                 collisionOn = true;
             }
 
@@ -551,13 +582,16 @@ public class Player extends Entity {
             // Even when idle, allow pickup if overlapping an object
             int objIndexIdle = gp.cChecker.checkObject(this, true);
             pickUpObject(objIndexIdle);
+            // Also process tile events while idle so F-triggered events (e.g., healing
+            // pool) work without moving
+            gp.eventHandler.checkEvent();
         }
 
         // F key: talk if near NPC (no sword attack on F)
         if (gp.gameState == gp.playState && keyH.fPressed) {
-            int npcOverlapIndex = gp.cChecker.checkEntityOverlap(this, gp.npc);
+            int npcOverlapIndex = gp.cChecker.checkEntityOverlap(this, gp.npc[gp.currentMap]);
             if (npcOverlapIndex == -1) {
-                npcOverlapIndex = gp.cChecker.checkEntityNearby(this, gp.npc, 8);
+                npcOverlapIndex = gp.cChecker.checkEntityNearby(this, gp.npc[gp.currentMap], 8);
             }
             if (npcOverlapIndex != -1) {
                 interactNPC(npcOverlapIndex);
@@ -623,6 +657,12 @@ public class Player extends Entity {
             mana = maxMana;
         }
 
+        if (life <= 0) {
+            gp.gameState = gp.gameOverState;
+            gp.playSoundEffect(12);
+            gp.stopMusic();
+        }
+
         // Reset hit combo if no hit landed within 3 seconds
         if (hitComboCount > 0) {
             long now = System.currentTimeMillis();
@@ -631,36 +671,33 @@ public class Player extends Entity {
             }
         }
 
-        // if (life <= 0) {
-        //     gp.gameState = gp.gameOverState;
-            
-        // }
-
     }
 
     public void damageInteractiveTile(int index) {
-        if (index != -1 && gp.iTile[index].destructible && gp.iTile[index].isCorrectItem(this)) {
-            generateParticles(gp.iTile[index], gp.iTile[index]);
-            gp.iTile[index] = null;
+        if (index != -1 && gp.iTile[gp.currentMap][index].destructible
+                && gp.iTile[gp.currentMap][index].isCorrectItem(this)) {
+            generateParticles(gp.iTile[gp.currentMap][index], gp.iTile[gp.currentMap][index]);
+            gp.iTile[gp.currentMap][index] = null;
         }
     }
 
-    // New: Only break interactive tiles if the attack hitbox actually intersects them
+    // New: Only break interactive tiles if the attack hitbox actually intersects
+    // them
     private void damageInteractiveTilesByAttack(Rectangle attackBox) {
         int hitIndex = -1;
-        for (int i = 0; i < gp.iTile.length; i++) {
-            if (gp.iTile[i] == null)
+        for (int i = 0; i < gp.iTile[0].length; i++) {
+            if (gp.iTile[gp.currentMap][i] == null)
                 continue;
-            if (!gp.iTile[i].destructible)
+            if (!gp.iTile[gp.currentMap][i].destructible)
                 continue;
-            if (!gp.iTile[i].isCorrectItem(this))
+            if (!gp.iTile[gp.currentMap][i].isCorrectItem(this))
                 continue; // e.g., require axe for trees
 
             Rectangle tileBox = new Rectangle(
-                    gp.iTile[i].worldX + gp.iTile[i].solidAreaDefaultX,
-                    gp.iTile[i].worldY + gp.iTile[i].solidAreaDefaultY,
-                    gp.iTile[i].solidArea.width,
-                    gp.iTile[i].solidArea.height);
+                    gp.iTile[gp.currentMap][i].worldX + gp.iTile[gp.currentMap][i].solidAreaDefaultX,
+                    gp.iTile[gp.currentMap][i].worldY + gp.iTile[gp.currentMap][i].solidAreaDefaultY,
+                    gp.iTile[gp.currentMap][i].solidArea.width,
+                    gp.iTile[gp.currentMap][i].solidArea.height);
 
             if (attackBox.intersects(tileBox)) {
                 hitIndex = i;
@@ -668,33 +705,33 @@ public class Player extends Entity {
             }
         }
 
-        if (hitIndex != -1 && !gp.iTile[hitIndex].invincible ) {
-            gp.iTile[hitIndex].playSE();
-            gp.iTile[hitIndex].life--;
+        if (hitIndex != -1 && !gp.iTile[gp.currentMap][hitIndex].invincible) {
+            gp.iTile[gp.currentMap][hitIndex].playSE();
+            gp.iTile[gp.currentMap][hitIndex].life--;
             // Generate visible wood chip particles at the tile
-            generateParticles(gp.iTile[hitIndex], gp.iTile[hitIndex]);
-            gp.iTile[hitIndex].invincible = true;
-            if (gp.iTile[hitIndex].life <= 0) {
-                gp.iTile[hitIndex] = gp.iTile[hitIndex].getDestroyedForm();
+            generateParticles(gp.iTile[gp.currentMap][hitIndex], gp.iTile[gp.currentMap][hitIndex]);
+            gp.iTile[gp.currentMap][hitIndex].invincible = true;
+            if (gp.iTile[gp.currentMap][hitIndex].life <= 0) {
+                gp.iTile[gp.currentMap][hitIndex] = gp.iTile[gp.currentMap][hitIndex].getDestroyedForm();
             }
         }
     }
 
     private void updatePosition() {
-        // Simple fixed movement - no speed multiplication or accumulation
+        // Move by current effective speed (base + bonus)
         switch (direction) {
             case "up":
-                worldY -= 4;
-                break; // Fixed speed 4
+                worldY -= speed;
+                break;
             case "down":
-                worldY += 4;
-                break; // Fixed speed 4
+                worldY += speed;
+                break;
             case "left":
-                worldX -= 4;
-                break; // Fixed speed 4
+                worldX -= speed;
+                break;
             case "right":
-                worldX += 4;
-                break; // Fixed speed 4
+                worldX += speed;
+                break;
         }
     }
 
@@ -726,14 +763,44 @@ public class Player extends Entity {
     public void pickUpObject(int index) {
         // Handle picking up an object
         if (index != -1) { // -1 means no object collision
-            Entity obj = gp.obj[index];
+            Entity obj = gp.obj[gp.currentMap][index];
+
+            // Static fixtures like houses are not pickable and should never disappear
+            if (obj.type == TYPE_HOUSE) {
+                return;
+            }
+
+            // Obstacles (e.g., doors): try unlocking with a key on collision
+            if (obj.type == TYPE_OBSTACLE) {
+                int keyIndex = -1;
+                for (int i = 0; i < inventory.size(); i++) {
+                    if (inventory.get(i) instanceof src.object.OBJ_Key) {
+                        keyIndex = i;
+                        break;
+                    }
+                }
+                if (keyIndex != -1) {
+                    inventory.remove(keyIndex);
+                    gp.playSoundEffect(3); // unlock.wav
+                    gp.ui.addMessage("Door unlocked!");
+                    gp.obj[gp.currentMap][index] = null; // remove the door
+                } else {
+                    // Show this hint at most once per second while bumping the door
+                    long now = System.currentTimeMillis();
+                    if (now - lastNeedKeyMsgMillis >= 1000) {
+                        gp.ui.addMessage("Need a key");
+                        lastNeedKeyMsgMillis = now;
+                    }
+                }
+                return;
+            }
 
             if (obj.type == TYPE_PICKUP_ONLY) {
                 obj.use(this); // Apply its effect immediately
-                gp.obj[index] = null; // Remove from map
+                gp.obj[gp.currentMap][index] = null; // Remove from map
                 return;
             } else {
-                if (inventory.size() < inventorySize) {
+                if (inventory.size() < maxInventorySize) {
                     // If it's a key, force its icon to the default key picture for inventory
                     if (obj instanceof OBJ_Key) {
                         obj.down1 = setup("res/objects/key/keys_1_1.png");
@@ -741,7 +808,7 @@ public class Player extends Entity {
                     inventory.add(obj); // Keep keys (and other items) in the inventory
                     gp.playSoundEffect(1);
                     gp.ui.addMessage("Got a " + obj.name + "!");
-                    gp.obj[index] = null; // Remove from map
+                    gp.obj[gp.currentMap][index] = null; // Remove from map
                 } else {
                     gp.ui.addMessage("You cannot carry any more items!");
                 }
@@ -755,8 +822,8 @@ public class Player extends Entity {
     }
 
     public void selectItem() {
-    int itemIndex = gp.ui.getItemIndexOnslot();
-    if (itemIndex != -1 && itemIndex < inventory.size()) {
+        int itemIndex = gp.ui.getItemIndexOnslot(gp.ui.playerSlotCol, gp.ui.playerSlotRow);
+        if (itemIndex != -1 && itemIndex < inventory.size()) {
             Entity selectedItem = inventory.get(itemIndex);
 
             if (selectedItem.type == TYPE_SWORD || selectedItem.type == TYPE_AXE) {

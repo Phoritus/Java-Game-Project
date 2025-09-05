@@ -12,21 +12,22 @@ import java.io.InputStream;
 public class TileManager {
     GamePanel gp; // Reference to the GamePanel for accessing game settings
     public Tile[] tile; // Array to hold different types of tiles
-    public int mapTileNum[][]; // 2D array to hold tile numbers for the map
+    public int mapTileNum[][][]; // 2D array to hold tile numbers for the map
 
     public TileManager(GamePanel gp) {
         this.gp = gp; // Initialize the GamePanel reference
 
         tile = new Tile[50]; // Increase array size to accommodate more tiles
-        mapTileNum = new int[gp.maxWorldCol][gp.maxWorldRow]; // Initialize the map tile number array
+        mapTileNum = new int[gp.maxMap][gp.maxWorldCol][gp.maxWorldRow]; // Initialize the map tile number array
 
         getTileImage(); // Load tile images
 
         // Additional initialization code can go here if needed
-        loadMap("/res/maps/worldV2.txt"); // Load the new map
+        loadMap("/res/maps/worldV2.txt", 0); // Load the new map
+        loadMap("/res/maps/interior01.txt", 1);
     }
 
-    public void loadMap(String path) {
+    public void loadMap(String path, int mapIndex) {
         try {
             InputStream is = getClass().getResourceAsStream(path);
             BufferedReader br = new BufferedReader(new java.io.InputStreamReader(is));
@@ -43,7 +44,7 @@ public class TileManager {
                 worldCol = 0;
                 while (worldCol < gp.maxWorldCol) {
                     int num = Integer.parseInt(numbers[worldCol]); // Parse the tile number
-                    mapTileNum[worldCol][worldRow] = num; // Store the tile number in the map array
+                    mapTileNum[mapIndex][worldCol][worldRow] = num; // Store the tile number in the map array
                     worldCol++;
                 }
                 worldRow++;
@@ -108,6 +109,9 @@ public class TileManager {
             setup(42, "/res/tiles/water00.png", true);
             setup(43, "/res/tiles/lava_floor.png", false);
             setup(44, "/res/tiles/right.png", false);
+            setup(45, "/res/tiles/house.png", false);
+            setup(46, "/res/tiles/table.png", true);
+            setup(47, "/res/tiles/034.png", false);
 
         } catch (Exception e) {
             e.printStackTrace(); // Handle exceptions, such as file not found
@@ -168,7 +172,7 @@ public class TileManager {
 
         while (worldCol < gp.maxWorldCol && worldRow < gp.maxWorldRow) {
 
-            int tileNum = mapTileNum[worldCol][worldRow]; // Get the tile number for the current position
+            int tileNum = mapTileNum[gp.currentMap][worldCol][worldRow]; // Get the tile number for the current position
             int worldX = worldCol * gp.tileSize; // Calculate world X position
             int worldY = worldRow * gp.tileSize; // Calculate world Y position
             int screenX = worldX - gp.player.worldX + gp.player.screenX; // Calculate screen X position

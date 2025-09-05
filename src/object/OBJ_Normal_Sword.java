@@ -6,6 +6,7 @@ import src.main.GamePanel;
 public class OBJ_Normal_Sword extends Entity {
     public OBJ_Normal_Sword(GamePanel gp) {
         super(gp);
+        price = 15;
 
         type = TYPE_SWORD;
         name = "Normal Sword";

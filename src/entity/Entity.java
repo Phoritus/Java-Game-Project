@@ -6,6 +6,7 @@ import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 
@@ -82,12 +83,17 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
     public final int TYPE_SHIELD = 5;
     public final int TYPE_CONSUMABLE = 6;
     public final int TYPE_PICKUP_ONLY = 7;
+    public final int TYPE_OBSTACLE = 8;
+    public final int TYPE_HOUSE = 9;
 
     // ITEM Attributes
     public int attackValue;
     public int defenseValue;
     public String description = "";
     public int useCost;
+    public ArrayList<Entity> inventory = new ArrayList<>();
+    public final int inventorySize = 30; // Maximum inventory slots (6x5 grid)
+    public int price;
 
     public void setAction() {
     }
@@ -99,11 +105,11 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
     }
 
     public void dropItem(Entity droppedItem) {
-        for (int i = 0; i < gp.obj.length; i++) {
-            if (gp.obj[i] == null) {
-                gp.obj[i] = droppedItem;
-                gp.obj[i].worldX = this.worldX; // the dead
-                gp.obj[i].worldY = this.worldY;
+        for (int i = 0; i < gp.obj[0].length; i++) {
+            if (gp.obj[gp.currentMap][i] == null) {
+                gp.obj[gp.currentMap][i] = droppedItem;
+                gp.obj[gp.currentMap][i].worldX = this.worldX; // the dead
+                gp.obj[gp.currentMap][i].worldY = this.worldY;
                 break;
             }
         }

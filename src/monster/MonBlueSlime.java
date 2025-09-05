@@ -43,7 +43,7 @@ public class MonBlueSlime extends Entity {
         attack = 2;
         defense = 1;
         direction = "down";
-        exp = 2;
+        exp = 1;
         projectile = new OBJ_Rock(gp);
 
         // Collision box tuned for a small slime

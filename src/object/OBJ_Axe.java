@@ -16,6 +16,7 @@ public class OBJ_Axe extends Entity {
         type = TYPE_AXE;
         name = "Iron Axe";
         down1 = setup("/res/objects/axe.png");
+        price = 10;
 
         // Reduce axe size to 75% of a tile for both world draw and inventory icon
         int target = (int) Math.round(gp.tileSize * 0.75);

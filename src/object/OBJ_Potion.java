@@ -17,6 +17,7 @@ public class OBJ_Potion extends Entity {
         name = "Red Potion";
         down1 = setup("/res/objects/potion.png");
         type = TYPE_CONSUMABLE;
+        price = 7;
         description = "[" + name + "]\nHeals " + this.value + " HP.";
 
         // Reduce size to 75% of tile and remember draw size

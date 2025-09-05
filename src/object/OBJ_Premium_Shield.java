@@ -11,6 +11,7 @@ public class OBJ_Premium_Shield extends Entity {
         name = "Premium Shield";
         down1 = setup("/res/objects/shield.png");
         defenseValue = 1;
+        price = 30;
         description = "[" + name + "]\nA premium shield.\nDefense +" + defenseValue;
     }
 
