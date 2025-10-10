@@ -30,16 +30,19 @@ public class OBJ_Potion extends Entity {
         drawH = target;
     }
 
-    public void use(Entity entity) {
+    public boolean use(Entity entity) {
         gp.gameState = gp.dialogState;
         gp.ui.currentDialogue = "You drink the " + name + ".\nYour HP has been restored by " + 
         this.value + ".";
 
         entity.life += this.value;
+
         if (gp.player.life > gp.player.maxLife) {
             gp.player.life = gp.player.maxLife;
         }
         gp.playSoundEffect(2);
+
+        return true;
     }
 
     @Override

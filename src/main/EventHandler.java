@@ -29,14 +29,18 @@ public class EventHandler {
     }
 
     public void checkEvent() {
+        // Offset for 100x100 map
+        int offsetX = 24;
+        int offsetY = 25;
+        
         // Healing pool should work even when standing still; check before gating
         if (gp.gameState == gp.playState && gp.keyHandler.fPressed && gp.currentMap == 0) {
             int centerX = gp.player.worldX + gp.player.solidAreaDefaultX + gp.player.solidArea.width / 2;
             int centerY = gp.player.worldY + gp.player.solidAreaDefaultY + gp.player.solidArea.height / 2;
             int colNow = Math.max(0, Math.min(gp.maxWorldCol - 1, centerX / gp.tileSize));
             int rowNow = Math.max(0, Math.min(gp.maxWorldRow - 1, centerY / gp.tileSize));
-            // Accept a small vertical band around the spark (rows 12-13)
-            if (colNow == 23 && (rowNow == 12 || rowNow == 13)) {
+            // Accept a small vertical band around the spark (rows 12-13, adjusted for new map)
+            if (colNow == (23 + offsetX) && (rowNow == (12 + offsetY) || rowNow == (13 + offsetY))) {
                 healingPool(gp.dialogState);
                 gp.keyHandler.fPressed = false; // consume press so it fires once per tap
                 previousEventX = gp.player.worldX;
@@ -56,23 +60,39 @@ public class EventHandler {
         if (canTouchEvent) {
             // Healing pool handled above using center tile + F; keep other events below
 
-            // Example event: Teleportation event at tile (26,12) on map 0
-            if (hitEvent(0, 26, 12, "any")) {
+            // Example event: Teleportation event at tile (26,12) on map 0, adjusted for 100x100
+            if (hitEvent(0, 26 + offsetX, 12 + offsetY, "any")) {
                 if (gp.keyHandler.tPressed) { // Check if T key is pressed
-                    teleport(1, 34, 12); // If player hits the event and presses T, teleport
+                    teleport(1, 34 + offsetX, 12 + offsetY, gp.areaOutside); // If player hits the event and presses T, teleport
                     gp.keyHandler.tPressed = false; // Reset T key state after use
                 }
             }
-            else if (hitEvent(0, 13, 39, "any")) {
-                teleport(1, 12, 11);
+            else if (hitEvent(0, 37, 64, "any")) {
+                teleport(1, 12 + offsetX, 11 + offsetY, gp.areaIndoor);
                 gp.playSoundEffect(13); // tele1.wav
             }
-            else if (hitEvent(1, 12, 13, "any")) {
-                teleport(0, 13, 39);
+            else if (hitEvent(1, 37, 38, "any")) {
+                teleport(0, 37, 64, gp.areaOutside);
                 gp.playSoundEffect(14); // tele2.wav
             }
-            // Talking to NPCs is handled via Player.interactNPC on F press; no tile-triggered talk here.
-            // If an event was triggered, prevent immediate retriggering
+            
+            // To dungeon
+            else if (hitEvent(0, 34, 34, "any")) {
+                teleport(2, 34, 65, gp.areaDungeon);
+                gp.playSoundEffect(13);
+            } else if (hitEvent(2, 34, 66, "any")) {
+                teleport(0, 34, 34, gp.areaOutside);
+                gp.playSoundEffect(14);
+            }
+
+            else if (hitEvent(2, 33, 32, "any")) {
+                teleport(3, 51, 64, gp.areaDungeon);
+                gp.playSoundEffect(13);
+            } else if (hitEvent(3, 51, 66, "any")) {
+                teleport(2, 33, 32, gp.areaDungeon);
+                gp.playSoundEffect(14);
+            }
+
             if (eventTriggered) {
                 canTouchEvent = false;
                 eventTriggered = false;
@@ -130,8 +150,9 @@ public class EventHandler {
         gp.assetSetter.setMonster();
     }
 
-    public void teleport(int map, int col, int row) {
+    public void teleport(int map, int col, int row, int area) {
         gp.gameState = gp.transitionState;
+        gp.nextArea = area;
         tempMap = map;
         tempCol = col;
         tempRow = row;

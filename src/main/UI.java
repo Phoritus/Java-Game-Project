@@ -132,6 +132,10 @@ public class UI {
             drawTradeScreen();
         }
 
+        // Sleep state
+        if (gp.gameState == gp.sleepState) {
+            drawSleepScreen();
+        }
     }
 
     public void drawTradeScreen() {
@@ -348,6 +352,7 @@ public class UI {
             gp.player.worldY = gp.eventHandler.tempRow * gp.tileSize;
             gp.eventHandler.previousEventX = gp.player.worldX;
             gp.eventHandler.previousEventY = gp.player.worldY;
+            gp.changeArea();
         }
     }
 
@@ -405,7 +410,7 @@ public class UI {
 
             // Equip cursor
             if (entity.inventory.get(i) == entity.currentWeapon
-                    || entity.inventory.get(i) == entity.currentShield) {
+                    || entity.inventory.get(i) == entity.currentShield || entity.inventory.get(i) == entity.currentLight) {
                 // Draw equip cursor
                 g2.setColor(new Color(240, 190, 90));
                 g2.setStroke(new BasicStroke(3));
@@ -819,6 +824,29 @@ public class UI {
         }
     }
 
+    public void drawSleepScreen() {
+
+        counter++;
+
+        if (counter < 1000) {
+            gp.envManager.lighting.filterAlpha += 0.01f;
+            if (gp.envManager.lighting.filterAlpha > 1f) {
+                gp.envManager.lighting.filterAlpha = 1f;
+            }
+        }
+
+        if (counter >= 1000) {
+            gp.envManager.lighting.filterAlpha -= 0.01f;
+            if (gp.envManager.lighting.filterAlpha <= 0f) {
+                gp.envManager.lighting.filterAlpha = 0f;
+                counter = 0;
+                gp.envManager.lighting.dayState = gp.envManager.lighting.day;
+                gp.gameState = gp.playState;
+            }
+        }
+
+    }
+
     public void option_endGameConfirm(int frameX, int frameY) {
         int textX = frameX + gp.tileSize;
         int textY = frameY + gp.tileSize;
@@ -921,7 +949,7 @@ public class UI {
 
         // Draw title screen background
         g2.setFont(g2.getFont().deriveFont(60f)); // Set larger font for title
-        String titleText = "2D Adventure Game"; // Replace with your game title
+        String titleText = "Rpg Adventure Game"; // Replace with your game title
         int x = getXforCenteredText(titleText);
         int y = gp.screenHeight / 3; // Fixed: divide by 3, not multiply by 3
 

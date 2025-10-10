@@ -4,6 +4,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import src.entity.Entity;
 import src.entity.Player;
+import src.environment.EnvironmentManager;
 import src.tile.TileManager;
 import src.tiles_interactive.InteractiveTile;
 
@@ -36,11 +37,11 @@ public class GamePanel extends JPanel implements Runnable {
     public final int screenWidth = tileSize * maxScreenCol; // 768 pixels wide
     public final int screenHeight = tileSize * maxScreenRow; // 576 pixels tall
 
-    // World settings
-    public final int maxWorldCol = 50; // 50 columns in the world
-    public final int maxWorldRow = 50; // 50 rows in the world
-    public final int worldWidth = tileSize * maxWorldCol; // 2400 pixels wide
-    public final int worldHeight = tileSize * maxWorldRow; // 2400 pixels
+    // World settings (expanded to 100x100)
+    public final int maxWorldCol = 100; // 100 columns in the world
+    public final int maxWorldRow = 100; // 100 rows in the world
+    public final int worldWidth = tileSize * maxWorldCol; // 4800 pixels wide
+    public final int worldHeight = tileSize * maxWorldRow; // 4800 pixels
     public final int maxMap = 10;
     public int currentMap = 0;
 
@@ -68,6 +69,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     // System settings
     public src.main.KeyHandler keyHandler = new src.main.KeyHandler(this); // Key handler for input
+    EnvironmentManager envManager = new EnvironmentManager(this); // Environment manager for weather, time, etc.
     Thread gameThread; // Thread for game loop
     Config config = new Config(this);
     public TileManager tileManager = new TileManager(this); // Tile manager for handling tiles
@@ -100,6 +102,14 @@ public class GamePanel extends JPanel implements Runnable {
     public final int optionState = 7;
     public final int transitionState = 8;
     public final int tradeState = 9;
+    public final int sleepState = 10;
+
+    // Area
+    public int currentArea;
+    public int nextArea;
+    public final int areaOutside = 50;
+    public final int areaIndoor = 51;
+    public final int areaDungeon = 52;
 
     // Sound State
     public boolean musicOn = true; // Track if music is on or off
@@ -128,11 +138,13 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void setupGame() {
         assetSetter.setObject(); // Set up game objects
-        assetSetter.setNPC(); // Set up NPCs
+        assetSetter.setNPC(); // Set up NPCsP
         assetSetter.setMonster(); // Set up monsters
         assetSetter.setInteractiveTile();
+        envManager.setup(); // Set up environment manager
         // playMusic(0); // Play background music
         gameState = titleState; // Set initial game state to title screen
+        currentArea = areaOutside;
 
         // Create both back buffers up front so swaps never hit null
         tempScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
@@ -276,6 +288,7 @@ public class GamePanel extends JPanel implements Runnable {
         if (gameState == playState) {
             tileManager.update(); // Update tile animations (water, etc.)
             player.update(); // Update player state
+            
             for (int i = 0; i < npc[0].length; i++) {
                 if (npc[currentMap][i] != null) {
                     npc[currentMap][i].update(); // Update each NPC
@@ -367,10 +380,12 @@ public class GamePanel extends JPanel implements Runnable {
                     monster[currentMap][i].update(); // Update each monster
                 }
             }
+            
 
         } else if (gameState == pauseState) {
             // Handle pause state logic if needed
         }
+        envManager.update(); // Update environment (lighting, weather, etc.)
     }
 
     public void drawToTempScreen() {
@@ -425,6 +440,9 @@ public class GamePanel extends JPanel implements Runnable {
                 if (entity != null) entity.draw(g2, this);
             }
             entityList.clear();
+
+            // Environment (weather, time)
+            envManager.draw(g2);
 
             // Overlay per-state UI (pause, dialog, trade, options, transition, etc.)
             ui.draw(g2);
@@ -535,4 +553,22 @@ public class GamePanel extends JPanel implements Runnable {
         se.play(); // Play the sound effect
     }
 
+    public void changeArea() {
+
+        if (nextArea != currentArea) {
+            stopMusic();
+
+            if (nextArea == areaOutside) {
+                playMusic(0);
+            } else if (nextArea == areaIndoor) {
+                playMusic(18);
+            } else if (nextArea == areaDungeon) {
+                playMusic(16);
+
+            }
+        }
+
+        currentArea = nextArea;
+        assetSetter.setMonster();
+    }
 }

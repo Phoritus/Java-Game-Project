@@ -17,7 +17,7 @@ public class TileManager {
     public TileManager(GamePanel gp) {
         this.gp = gp; // Initialize the GamePanel reference
 
-        tile = new Tile[50]; // Increase array size to accommodate more tiles
+        tile = new Tile[100]; // Increase array size to accommodate more tiles
         mapTileNum = new int[gp.maxMap][gp.maxWorldCol][gp.maxWorldRow]; // Initialize the map tile number array
 
         getTileImage(); // Load tile images
@@ -25,6 +25,8 @@ public class TileManager {
         // Additional initialization code can go here if needed
         loadMap("/res/maps/worldV2.txt", 0); // Load the new map
         loadMap("/res/maps/interior01.txt", 1);
+        loadMap("/res/maps/dungeon01.txt", 2);
+        loadMap("/res/maps/dungeon02.txt", 3);
     }
 
     public void loadMap(String path, int mapIndex) {
@@ -61,7 +63,7 @@ public class TileManager {
         try {
             
             // Placeholder for tile images
-            setup(0, "/res/tiles/grass01.png", false);
+            setup(0, "/res/tiles/000.png", false);
             setup(1, "/res/tiles/grass01.png", false);
             setup(2, "/res/tiles/grass01.png", false);
             setup(3, "/res/tiles/grass01.png", false);
@@ -112,6 +114,10 @@ public class TileManager {
             setup(45, "/res/tiles/house.png", false);
             setup(46, "/res/tiles/table.png", true);
             setup(47, "/res/tiles/034.png", false);
+            setup(48, "/res/tiles/032.png", true);
+            setup(49, "/res/tiles/stair1.png", false);
+            setup(50, "/res/tiles/037.png", false);
+            setup(51, "/res/tiles/floor.png", false);
 
         } catch (Exception e) {
             e.printStackTrace(); // Handle exceptions, such as file not found

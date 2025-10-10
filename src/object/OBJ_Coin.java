@@ -111,10 +111,12 @@ public class OBJ_Coin extends Entity {
         // Don't call super.update() to avoid unintended movement logic for items
     }
 
-    public void use(Entity entity) {
+    public boolean use(Entity entity) {
         gp.playSoundEffect(1);
         gp.ui.addMessage("Coin +" + value);
         gp.player.coin += value;
+
+        return true;
     }
 
     @Override

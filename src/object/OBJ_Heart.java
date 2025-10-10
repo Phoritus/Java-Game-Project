@@ -26,10 +26,11 @@ public class OBJ_Heart extends Entity {
         image3 = uTool.scaleImage(image3, heartSize, heartSize);
     }
 
-    public void use(Entity entity) {
+    public boolean use(Entity entity) {
         gp.playSoundEffect(2);
         gp.ui.addMessage("Life +" + value);
         entity.life += value;
-        
+
+        return true;
     }
 }

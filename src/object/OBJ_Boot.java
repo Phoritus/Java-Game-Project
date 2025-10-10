@@ -96,7 +96,7 @@ public class OBJ_Boot extends Entity {
     }
 
     @Override
-    public void use(Entity entity) {
+    public boolean use(Entity entity) {
         // When picked up by the player, grant a speed bonus once
         if (entity instanceof Player) {
             Player p = (Player) entity;
@@ -109,5 +109,6 @@ public class OBJ_Boot extends Entity {
                 // Already applied; ignore duplicates
             }
         }
+        return false;
     }
 }

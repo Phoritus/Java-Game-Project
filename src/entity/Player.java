@@ -22,6 +22,9 @@ public class Player extends Entity {
 
     public final int screenX;
     public final int screenY;
+    public boolean attackCanceled = false;
+    public boolean lightUpdated = false;
+
 
     // Animation images for all directions (6 frames each)
     public BufferedImage[][] animationImages = new BufferedImage[5][6]; // [direction][frame]
@@ -70,13 +73,23 @@ public class Player extends Entity {
         getPlayerImage(); // Load player images (walk + idle)
         getAttackImage(); // Load attack images
         setItems(); // Initialize inventory items
+        getSleepingImage(); // Load sleeping image
     }
+
+    public BufferedImage sleepingImage;
+
+    public void getSleepingImage() {
+        sleepingImage = setup("res/objects/bed.png");
+    }
+
+    
+    
 
     public void setDefaultValues() {
         // worldX = gp.tileSize * 12; // Initial X position - center of 50x50 map
         // worldY = gp.tileSize * 10; // Initial Y position - center of 50x50 map
-        worldX = gp.tileSize * 23; // Initial X position - center of 50x50 map
-        worldY = gp.tileSize * 14; // Initial Y position - center of 50x50 map
+        worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos + offset)
+        worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos + offset)
         // speed = 4; // Base speed
         direction = "down"; // Default direction
 
@@ -106,8 +119,8 @@ public class Player extends Entity {
     }
 
     public void setDefaultPositions() {
-        worldX = gp.tileSize * 23; // Initial X position - center of 50x50 map
-        worldY = gp.tileSize * 14; // Initial Y position - center of 50x50 map
+        worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos + offset)
+        worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos + offset)
         direction = "down"; // Default direction
         attacking = false;
         attackFrameIndex = 0;
@@ -840,6 +853,14 @@ public class Player extends Entity {
                 // Use consumable
                 selectedItem.use(this);
                 inventory.remove(itemIndex);
+            } if (selectedItem.type == TYPE_LIGHT) {
+                if (currentLight == selectedItem) {
+                    currentLight = null;
+                } else {
+                    currentLight = selectedItem;
+                    lightRadius = currentLight.lightRadius; // Copy light radius from item
+                }
+                lightUpdated = true; // Trigger light radius update
             }
         }
     }
@@ -847,41 +868,46 @@ public class Player extends Entity {
     public void draw(Graphics2D g2, GamePanel gp) {
         BufferedImage image = null;
 
-        // Get current frame index based on direction and animation state
-        int frameIndex = Math.min(spriteNum - 1, 5); // Ensure frame index is within bounds
-        int directionIndex;
-
-        if (attacking) {
-            // Attack uses last facing direction
-            image = attackImages[lastFacingDirIndex][attackFrameIndex];
-        } else if (isIdle) {
-            // Idle uses directional idle set by last facing
-            int idleIdx = Math.min(idleFrame - 1, 5);
-            image = idleImages[lastFacingDirIndex][idleIdx];
-            // If any idle frame missing, gracefully fall back to walk frame
-            if (image == null) {
-                int walkDir = lastFacingDirIndex;
-                image = animationImages[walkDir][frameIndex];
-            }
+        // Check if player is sleeping
+        if (gp.gameState == gp.sleepState && sleepingImage != null) {
+            image = sleepingImage;
         } else {
-            // Moving: use walk cycles based on current direction
-            switch (direction) {
-                case "up":
-                    directionIndex = 0;
-                    break;
-                case "down":
-                    directionIndex = 1;
-                    break;
-                case "left":
-                    directionIndex = 2;
-                    break;
-                case "right":
-                default:
-                    directionIndex = 3;
-                    break;
+            // Get current frame index based on direction and animation state
+            int frameIndex = Math.min(spriteNum - 1, 5); // Ensure frame index is within bounds
+            int directionIndex;
+
+            if (attacking) {
+                // Attack uses last facing direction
+                image = attackImages[lastFacingDirIndex][attackFrameIndex];
+            } else if (isIdle) {
+                // Idle uses directional idle set by last facing
+                int idleIdx = Math.min(idleFrame - 1, 5);
+                image = idleImages[lastFacingDirIndex][idleIdx];
+                // If any idle frame missing, gracefully fall back to walk frame
+                if (image == null) {
+                    int walkDir = lastFacingDirIndex;
+                    image = animationImages[walkDir][frameIndex];
+                }
+            } else {
+                // Moving: use walk cycles based on current direction
+                switch (direction) {
+                    case "up":
+                        directionIndex = 0;
+                        break;
+                    case "down":
+                        directionIndex = 1;
+                        break;
+                    case "left":
+                        directionIndex = 2;
+                        break;
+                    case "right":
+                    default:
+                        directionIndex = 3;
+                        break;
+                }
+                image = animationImages[directionIndex][frameIndex];
             }
-            image = animationImages[directionIndex][frameIndex];
-        }
+        } // End of else block for normal animation
 
         // Apply invincibility transparency BEFORE drawing, and restore after
         Composite oldComposite = g2.getComposite();
@@ -893,9 +919,15 @@ public class Player extends Entity {
             // Ensure nearest-neighbor when scaling to larger size (avoid blur)
             g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
-            // Draw at 2.5x tile size; if attack frame was loaded raw, scale from its native
-            // size here
-            int scaledSize = (int) (gp.tileSize * 2.5);
+            
+            // Use smaller size for bed sprite, normal size for player animations
+            int scaledSize;
+            if (gp.gameState == gp.sleepState && image == sleepingImage) {
+                scaledSize = gp.tileSize; // Normal tile size for bed
+            } else {
+                scaledSize = (int) (gp.tileSize * 2.5); // 2.5x for player sprites
+            }
+            
             int centerX = gp.screenWidth / 2 - scaledSize / 2;
             int centerY = gp.screenHeight / 2 - scaledSize / 2;
             g2.drawImage(image, centerX, centerY, scaledSize, scaledSize, null);

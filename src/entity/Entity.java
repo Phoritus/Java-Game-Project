@@ -71,6 +71,7 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
     public int coin;
     public Entity currentWeapon;
     public Entity currentShield;
+    public Entity currentLight;
     public Projectile projectile;
     public int value;
 
@@ -85,6 +86,7 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
     public final int TYPE_PICKUP_ONLY = 7;
     public final int TYPE_OBSTACLE = 8;
     public final int TYPE_HOUSE = 9;
+    public final int TYPE_LIGHT = 10;
 
     // ITEM Attributes
     public int attackValue;
@@ -94,6 +96,7 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
     public ArrayList<Entity> inventory = new ArrayList<>();
     public final int inventorySize = 30; // Maximum inventory slots (6x5 grid)
     public int price;
+    public int lightRadius; // For light sources
 
     public void setAction() {
     }
@@ -133,7 +136,8 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
         }
     }
 
-    public void use(Entity entity) {
+    public boolean use(Entity entity) {
+        return false;
     }
 
     public void update() {
