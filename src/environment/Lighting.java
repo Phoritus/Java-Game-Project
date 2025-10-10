@@ -80,10 +80,6 @@ public class Lighting {
       gp.player.lightUpdated = false;
     }
 
-    if (gp.keyHandler.godMode) {
-      filterAlpha = 0f; // Disable darkness in god mode
-      return;
-    }
     if (dayState == day) {
       dayCounts++;
 
@@ -121,17 +117,23 @@ public class Lighting {
   }
 
   public void draw(Graphics2D g2) {
+    // If godMode is on, keep the screen bright (skip dark overlay entirely)
+    boolean skipDarkOverlay = gp != null && gp.keyHandler != null && gp.keyHandler.godMode;
 
-    if (gp.currentArea == gp.outside) {
-      g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, filterAlpha));
+    if (!skipDarkOverlay) {
+      if (gp.currentArea == gp.outside) {
+        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, filterAlpha));
+      }
 
+      if (gp.currentArea == gp.outside || gp.currentArea == gp.dungeon) {
+        g2.drawImage(darknessFilter, 0, 0, null);
+      }
+
+      g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)); // Reset alpha to full opacity
+    } else {
+      // Ensure composite is reset in godMode as well
+      g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
     }
-
-    if (gp.currentArea == gp.outside || gp.currentArea == gp.dungeon) {
-      g2.drawImage(darknessFilter, 0, 0, null);
-    }
-
-    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)); // Reset alpha to full opacity
 
     // DEBUG
     String situation = "";

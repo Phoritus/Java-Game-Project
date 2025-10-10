@@ -51,7 +51,8 @@ public class UI {
     public int playerInvFrameX, playerInvFrameY, playerInvFrameW, playerInvFrameH;
     public int npcInvFrameX, npcInvFrameY, npcInvFrameW, npcInvFrameH;
 
-    BufferedImage heart_full, heart_half, heart_blank, crystal_full, crystal_blank, coin; // Heart images for health display
+    BufferedImage heart_full, heart_half, heart_blank, crystal_full, crystal_blank, coin; // Heart images for health
+                                                                                          // display
 
     public UI(GamePanel gp) {
         this.gp = gp; // Initialize the GamePanel reference
@@ -69,8 +70,8 @@ public class UI {
 
         Entity crystal = new OBJ_ManaCrystal(gp);
         crystal_full = crystal.image; // Full crystal image
-        crystal_blank = crystal.image2; // Blank crystal 
-        
+        crystal_blank = crystal.image2; // Blank crystal
+
         Entity GoldCoin = new src.object.OBJ_Coin(gp);
         coin = GoldCoin.down1;
 
@@ -118,7 +119,7 @@ public class UI {
 
         // Cutscene state
         if (gp.gameState == gp.cutsceneState) {
-            drawPlayerHealth();
+            // Do not draw HUD during cutscenes
             if (npc != null) {
                 drawDialogueScreen();
             }
@@ -224,13 +225,13 @@ public class UI {
 
         // Draw Price window
         int itemIndex = getItemIndexOnslot(npcSlotCol, npcSlotRow);
-        if (itemIndex != -1 && itemIndex < npc.inventory.size() ) {
-            x = (int)(gp.tileSize * 5.5);
-            y = (int)(gp.tileSize * 5.5);
-            width = (int)(gp.tileSize * 2.5);
+        if (itemIndex != -1 && itemIndex < npc.inventory.size()) {
+            x = (int) (gp.tileSize * 5.5);
+            y = (int) (gp.tileSize * 5.5);
+            width = (int) (gp.tileSize * 2.5);
             height = gp.tileSize;
             drawSubWindow(x, y, width, height);
-            g2.drawImage(coin, x + 10, y + 10,28, 28, null);
+            g2.drawImage(coin, x + 10, y + 10, 28, 28, null);
 
             int price = npc.inventory.get(itemIndex).price;
             String text = String.valueOf(price);
@@ -259,21 +260,20 @@ public class UI {
             }
         }
 
-
     }
 
     public void trade_sell() {
-    // Compute frames (including NPC frame) without drawing NPC items
-    computeInventoryFrames();
+        // Compute frames (including NPC frame) without drawing NPC items
+        computeInventoryFrames();
 
-    // Draw player inventory with cursor
+        // Draw player inventory with cursor
         drawInventory(gp.player, true);
 
         // Align helper windows directly under the hovered slot for each inventory
         int spacing = gp.tileSize * 3; // vertical gap below the slots
 
-    // Hint window aligned under NPC inventory frame (same as trade_buy),
-    // while NPC inventory itself remains hidden
+        // Hint window aligned under NPC inventory frame (same as trade_buy),
+        // while NPC inventory itself remains hidden
         int x = npcInvFrameX;
         int y = npcInvFrameY + npcInvFrameH + spacing;
         int width = npcInvFrameW;
@@ -291,13 +291,13 @@ public class UI {
 
         // Draw Price window
         int itemIndex = getItemIndexOnslot(playerSlotCol, playerSlotRow);
-        if (itemIndex != -1 && itemIndex < gp.player.inventory.size() ) {
-            x = (int)(gp.tileSize * 15.5);
-            y = (int)(gp.tileSize * 5.5);
-            width = (int)(gp.tileSize * 2.5);
+        if (itemIndex != -1 && itemIndex < gp.player.inventory.size()) {
+            x = (int) (gp.tileSize * 15.5);
+            y = (int) (gp.tileSize * 5.5);
+            width = (int) (gp.tileSize * 2.5);
             height = gp.tileSize;
             drawSubWindow(x, y, width, height);
-            g2.drawImage(coin, x + 10, y + 10,28, 28, null);
+            g2.drawImage(coin, x + 10, y + 10, 28, 28, null);
 
             int price = gp.player.inventory.get(itemIndex).price;
             String text = String.valueOf(price);
@@ -306,9 +306,9 @@ public class UI {
 
             // Buy an item (Enter or F → enterPressed)
             if (gp.keyHandler.enterPressed) {
-                
-                if (gp.player.inventory.get(itemIndex) == gp.player.currentWeapon || 
-                    gp.player.inventory.get(itemIndex) == gp.player.currentShield) {
+
+                if (gp.player.inventory.get(itemIndex) == gp.player.currentWeapon ||
+                        gp.player.inventory.get(itemIndex) == gp.player.currentShield) {
                     // If the item is equipped - NPC dialogue set 1, index 2
                     commandNumber = 0;
                     subState = 0;
@@ -424,7 +424,8 @@ public class UI {
 
             // Equip cursor
             if (entity.inventory.get(i) == entity.currentWeapon
-                    || entity.inventory.get(i) == entity.currentShield || entity.inventory.get(i) == entity.currentLight) {
+                    || entity.inventory.get(i) == entity.currentShield
+                    || entity.inventory.get(i) == entity.currentLight) {
                 // Draw equip cursor
                 g2.setColor(new Color(240, 190, 90));
                 g2.setStroke(new BasicStroke(3));
@@ -741,7 +742,7 @@ public class UI {
             g2.drawImage(heart_blank, x, y, null);
             i++;
             x += gp.tileSize; // Move to the next heart position
-            
+
             // Wrap to next row if exceeded 12 hearts
             if (i % MAX_PER_ROW == 0) {
                 x = startX;
@@ -763,7 +764,7 @@ public class UI {
             }
             i += 1;
             x += gp.tileSize; // Move to the next heart position
-            
+
             // Wrap to next row if exceeded 12 hearts
             if ((i / 2) % MAX_PER_ROW == 0) {
                 x = startX;
@@ -775,11 +776,12 @@ public class UI {
         int crystalSize = (int) (gp.tileSize * 1.15); // 120% of tile size
         int crystalGap = (int) (crystalSize * 0.65); // spacing between crystals
         int crystalStartX = gp.tileSize / 2 - 9;
-        
-        // Calculate y position: hearts can take multiple rows, so start after all heart rows
+
+        // Calculate y position: hearts can take multiple rows, so start after all heart
+        // rows
         int heartRows = (gp.player.maxLife / 2 + MAX_PER_ROW - 1) / MAX_PER_ROW; // Ceiling division
         int manaStartY = (gp.tileSize / 2 + topHudMargin) + (heartRows * gp.tileSize);
-        
+
         x = crystalStartX;
         y = manaStartY;
         i = 0;
@@ -789,7 +791,7 @@ public class UI {
             g2.drawImage(crystal_blank, x, y, crystalSize, crystalSize, null);
             i++;
             x += crystalGap; // Move to the next crystal position
-            
+
             // Wrap to next row if exceeded 12 crystals
             if (i % MAX_PER_ROW == 0) {
                 x = crystalStartX;
@@ -807,7 +809,7 @@ public class UI {
             g2.drawImage(crystal_full, x, y, crystalSize, crystalSize, null);
             i++;
             x += crystalGap; // Move to the next crystal position
-            
+
             // Wrap to next row if exceeded 12 crystals
             if (i % MAX_PER_ROW == 0) {
                 x = crystalStartX;
@@ -1075,7 +1077,7 @@ public class UI {
         y += gp.tileSize;
 
         if (npc.dialogues[npc.dialogueSet][npc.dialogueIndex] != null) {
-            
+
             // currentDialogue = npc.dialogues[npc.dialogueSet][npc.dialogueIndex];
 
             char character[] = npc.dialogues[npc.dialogueSet][npc.dialogueIndex].toCharArray();
@@ -1093,7 +1095,7 @@ public class UI {
             }
 
             if (gp.keyHandler.fPressed) {
-                
+
                 charIndex = 0;
                 combinedText = "";
 
@@ -1103,17 +1105,28 @@ public class UI {
                 }
             }
         } else {
+            // Dialogue finished for current set
+            // Reset typewriter state
+            charIndex = 0;
+            combinedText = "";
+            currentDialogue = "";
+            typewriterCounter = 0;
+
+            // Reset dialogue index for next time
             npc.dialogueIndex = 0;
 
             if (gp.gameState == gp.dialogueState) {
+                // Close dialogue and return to play
                 gp.gameState = gp.playState;
-            }
-
-            if (gp.gameState == gp.cutsceneState) {
+                // Clear active dialogue speaker
+                npc = null;
+            } else if (gp.gameState == gp.cutsceneState) {
+                // Prevent dialogue from restarting in cutscene by clearing npc
+                npc = null;
+                // Advance cutscene phase
                 gp.cutsceneManager.scenePhase++;
             }
         }
-
 
         for (String line : currentDialogue.split("\n")) {
             g2.drawString(line, x, y);

@@ -85,8 +85,10 @@ public class Player extends Entity {
     public void setDefaultValues() {
         // worldX = gp.tileSize * 12; // Initial X position - center of 50x50 map
         // worldY = gp.tileSize * 10; // Initial Y position - center of 50x50 map
-        // worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos + offset)
-        // worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos + offset)
+        // worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos +
+        // offset)
+        // worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos +
+        // offset)
         worldX = gp.tileSize * 50; // New starting position for map 3
         worldY = gp.tileSize * 54; // New starting position for map 3
         // speed = 4; // Base speed
@@ -103,7 +105,7 @@ public class Player extends Entity {
         nextLevelExp = 5;
         coin = 0;
         this.maxInventorySize = 20;
-        
+
         // Initialize mana so UI can render crystals
         maxMana = 4;
         mana = maxMana;
@@ -116,8 +118,14 @@ public class Player extends Entity {
     }
 
     public void setDefaultPositions() {
-        worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos + offset)
-        worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos + offset)
+        // worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos +
+        // offset)
+        // worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos +
+        // offset)
+        worldX = gp.tileSize * 50; // New starting position for map 3
+        worldY = gp.tileSize * 36; // New starting position for map 3
+        gp.currentMap = 3;
+        gp.playMusic(0);
         direction = "down"; // Default direction
         attacking = false;
         attackFrameIndex = 0;
@@ -134,21 +142,21 @@ public class Player extends Entity {
         mana = maxMana;
         invincible = false;
     }
-    
+
     public void setDialogue() {
         // Dialogue set 0: Level up
         dialogues[0][0] = "You leveled up! You are now level " + level + "!\n"
-                    + "Max Life increased by 2\n"
-                    + "Mana increased by 1\n"
-                    + "Strength increased by 1\n"
-                    + "Dexterity increased by 1";
-        
+                + "Max Life increased by 2\n"
+                + "Mana increased by 1\n"
+                + "Strength increased by 1\n"
+                + "Dexterity increased by 1";
+
         // Dialogue set 1: Healing pool
         dialogues[1][0] = "You feel refreshed!";
-        
+
         // Dialogue set 2: Potion use (will be set dynamically in OBJ_Potion)
         dialogues[2][0] = ""; // Placeholder
-        
+
         // Dialogue set 3: Trade messages
         dialogues[3][0] = "You don't have enough coin.";
         dialogues[3][1] = "Inventory full!";
@@ -275,7 +283,7 @@ public class Player extends Entity {
 
             gp.playSoundEffect(8);
             gp.gameState = gp.dialogueState;
-            setDialogue();      
+            setDialogue();
             startDialogue(this, 0); // Show level up dialogue
         }
     }
@@ -526,7 +534,11 @@ public class Player extends Entity {
 
     public void update() {
         // Recalculate effective speed each tick: base 4 + bonus
-        speed = 4 + Math.max(0, speedBonus);
+        if (gp.keyHandler.godMode)
+            speed = 8 + Math.max(0, speedBonus);
+        else {
+            speed = 4 + Math.max(0, speedBonus);
+        }
 
         // Don't update player movement during dialogue
         if (gp.gameState == gp.dialogueState) {
@@ -569,7 +581,9 @@ public class Player extends Entity {
             collisionOn = false;
 
             // Debug collision bypass
-            // gp.cChecker.checkTile(this);
+            if (!gp.keyHandler.godMode) {
+                gp.cChecker.checkTile(this);
+            }
 
             // Check for object collisions and handle them
             int objIndex = gp.cChecker.checkObject(this, true);
@@ -957,9 +971,9 @@ public class Player extends Entity {
             int centerY = gp.screenHeight / 2 - scaledSize / 2;
 
             if (drawing) {
-                g2.drawImage(image, centerX, centerY, scaledSize, scaledSize, null);                
-            } 
-            
+                g2.drawImage(image, centerX, centerY, scaledSize, scaledSize, null);
+            }
+
         } else {
             // Fallback: White rectangle if no image is available
             g2.setColor(Color.WHITE);

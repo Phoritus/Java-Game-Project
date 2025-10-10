@@ -1,5 +1,6 @@
 package src.main;
 
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 
 public class Main {
@@ -11,6 +12,7 @@ public class Main {
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);
         window.setTitle("Rpg Adventure Game");
+        new Main().setIcon();
 
         GamePanel gamePanel = new GamePanel();
         window.add(gamePanel);
@@ -29,5 +31,11 @@ public class Main {
         }
 
         gamePanel.startGameThread(); // Start the game loop
+    }
+
+    public void setIcon() {
+        // Set the game window icon
+        ImageIcon icon = new ImageIcon(getClass().getResource("/res/player/player_idle/idle1.png"));
+        window.setIconImage(icon.getImage());
     }
 }

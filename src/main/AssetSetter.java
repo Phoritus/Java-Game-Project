@@ -1,5 +1,6 @@
 package src.main;
 
+import src.data.Progress;
 import src.entity.NPC_Merchant;
 import src.entity.NPC_OldMan;
 import src.monster.MonBlueSlime;
@@ -32,7 +33,7 @@ public class AssetSetter {
         // Offset for 100x100 map: add 24 to X, 25 to Y
         int offsetX = 24;
         int offsetY = 25;
-        
+
         gp.obj[mapnum][i] = new OBJ_Coin(gp);
         gp.obj[mapnum][i].worldX = gp.tileSize * (11 + offsetX);
         gp.obj[mapnum][i].worldY = gp.tileSize * (11 + offsetY);
@@ -85,7 +86,8 @@ public class AssetSetter {
         gp.obj[mapnum][i].worldY = gp.tileSize * (34);
 
         // Iron door for minotour cutscene
-        i++; mapnum = 3;
+        i++;
+        mapnum = 3;
         gp.obj[mapnum][i] = new OBJ_IronDoor(gp);
         gp.obj[mapnum][i].worldX = gp.tileSize * 50;
         gp.obj[mapnum][i].worldY = gp.tileSize * 40;
@@ -97,7 +99,7 @@ public class AssetSetter {
         // Offset for 100x100 map
         int offsetX = 24;
         int offsetY = 25;
-        
+
         // NPC 1 - Priest
         gp.npc[mapnum][i] = new NPC_OldMan(gp);
         gp.npc[mapnum][i].worldX = gp.tileSize * (24 + offsetX);
@@ -117,7 +119,7 @@ public class AssetSetter {
         // Offset for 100x100 map
         int offsetX = 24;
         int offsetY = 25;
-        
+
         // Monster 1 - Blue Slime
         gp.monster[mapnum][i] = new MonBlueSlime(gp);
         gp.monster[mapnum][i].worldX = gp.tileSize * (11 + offsetX);
@@ -142,9 +144,17 @@ public class AssetSetter {
         // Monster 2 - Minotour (Boss)
         mapnum = 3;
         i++;
-        gp.monster[mapnum][i] = new MonMinotour(gp);
-        gp.monster[mapnum][i].worldX = gp.tileSize * 46;
-        gp.monster[mapnum][i].worldY = gp.tileSize * 38;
+        if (Progress.minotourDefeated == false) { // Only spawn if not defeated
+            gp.monster[mapnum][i] = new MonMinotour(gp);
+            gp.monster[mapnum][i].worldX = gp.tileSize * 46;
+            gp.monster[mapnum][i].worldY = gp.tileSize * 38;
+        }
+
+        // Crystal
+        i++;
+        gp.obj[mapnum][i] = new src.object.OBJ_Cyrstal(gp);
+        gp.obj[mapnum][i].worldX = gp.tileSize * 50;
+        gp.obj[mapnum][i].worldY = gp.tileSize * 33;
     }
 
     public void setInteractiveTile() {
@@ -153,7 +163,7 @@ public class AssetSetter {
         // Offset for 100x100 map
         int offsetX = 24;
         int offsetY = 25;
-        
+
         gp.iTile[mapnum][i] = new IT_DryTree(gp, 27 + offsetX, 12 + offsetY);
         i++;
         gp.iTile[mapnum][i] = new IT_DryTree(gp, 28 + offsetX, 12 + offsetY);

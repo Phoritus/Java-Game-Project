@@ -45,7 +45,7 @@ public class KeyHandler implements KeyListener {
                 if (gp.ui.commandNumber == 0) {
                     // NEW GAME
                     gp.gameState = gp.playState;
-                    gp.playMusic(0);
+                    gp.resetGame(true); // Start a new game
                 } else if (gp.ui.commandNumber == 1) {
                     // LOAD GAME (not implemented yet)
                     gp.gameState = gp.playState; // For now, just start the game
@@ -339,7 +339,7 @@ public class KeyHandler implements KeyListener {
                 gp.retry();
             } else if (gp.ui.commandNumber == 1) {
                 gp.gameState = gp.titleState;
-                gp.restart();
+                gp.resetGame(true);
             }
         }
     }

@@ -44,7 +44,7 @@ public class GamePanel extends JPanel implements Runnable {
     public final int worldHeight = tileSize * maxWorldRow; // 4800 pixels
     public final int maxMap = 10;
 
-     public int currentMap = 3;
+    public int currentMap;
 
     // Area settings
     public int currentArea;
@@ -141,8 +141,9 @@ public class GamePanel extends JPanel implements Runnable {
         });
 
     }
-    
+
     public void resetGame(boolean restart) {
+        stopMusic();
         removeTempEntities();
         bossBattleOn = false;
         player.setDefaultValues();
@@ -155,11 +156,12 @@ public class GamePanel extends JPanel implements Runnable {
         if (restart) {
             player.setDefaultPositions();
             player.restoreLifeAndMana();
+
         } else {
             player.worldX = tileSize * 26;
             player.worldY = tileSize * 23;
         }
-        
+
     }
 
     public void setupGame() {
@@ -212,16 +214,6 @@ public class GamePanel extends JPanel implements Runnable {
         if (musicOn) {
             playMusic(0);
         }
-    }
-
-    public void restart() {
-        player.restoreLifeAndMana();
-        player.setItems();
-        assetSetter.setObject();
-        assetSetter.setInteractiveTile();
-        assetSetter.setMonster();
-        assetSetter.setNPC();
-        
     }
 
     public void setFullScreen() {
@@ -315,7 +307,7 @@ public class GamePanel extends JPanel implements Runnable {
         if (gameState == playState) {
             tileManager.update(); // Update tile animations (water, etc.)
             player.update(); // Update player state
-            
+
             for (int i = 0; i < npc[0].length; i++) {
                 if (npc[currentMap][i] != null) {
                     npc[currentMap][i].update(); // Update each NPC
@@ -407,7 +399,6 @@ public class GamePanel extends JPanel implements Runnable {
                     monster[currentMap][i].update(); // Update each monster
                 }
             }
-            
 
         } else if (gameState == pauseState) {
             // Handle pause state logic if needed
@@ -438,13 +429,16 @@ public class GamePanel extends JPanel implements Runnable {
 
             entityList.add(player);
             for (int i = 0; i < npc[0].length; i++) {
-                if (npc[currentMap][i] != null) entityList.add(npc[currentMap][i]);
+                if (npc[currentMap][i] != null)
+                    entityList.add(npc[currentMap][i]);
             }
             for (int i = 0; i < obj[0].length; i++) {
-                if (obj[currentMap][i] != null) entityList.add(obj[currentMap][i]);
+                if (obj[currentMap][i] != null)
+                    entityList.add(obj[currentMap][i]);
             }
             for (int i = 0; i < monster[0].length; i++) {
-                if (monster[currentMap][i] != null) entityList.add(monster[currentMap][i]);
+                if (monster[currentMap][i] != null)
+                    entityList.add(monster[currentMap][i]);
             }
             for (int i = 0; i < projectileList.size(); i++) {
                 if (projectileList.get(i) != null && projectileList.get(i).alive) {
@@ -464,7 +458,8 @@ public class GamePanel extends JPanel implements Runnable {
                 }
             });
             for (Entity entity : entityList) {
-                if (entity != null) entity.draw(g2, this);
+                if (entity != null)
+                    entity.draw(g2, this);
             }
             entityList.clear();
 
