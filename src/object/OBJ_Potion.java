@@ -31,9 +31,9 @@ public class OBJ_Potion extends Entity {
     }
 
     public boolean use(Entity entity) {
-        gp.gameState = gp.dialogState;
-        gp.ui.currentDialogue = "You drink the " + name + ".\nYour HP has been restored by " + 
-        this.value + ".";
+        // Set potion dialogue dynamically (dialogue set 2)
+        gp.player.dialogues[2][0] = "You drink the " + name + ".\nYour HP has been restored by " + this.value + ".";
+        gp.player.startDialogue(gp.player, 2);
 
         entity.life += this.value;
 

@@ -37,6 +37,9 @@ public class UI {
     int counter = 0;
     int subState = 0;
     public Entity npc;
+    public int charIndex = 0;
+    public String combinedText = "";
+    public int typewriterCounter = 0; // Counter for typewriter effect speed
     // Defer applying fullscreen toggle until confirmation/notice screen
     boolean pendingFullScreenToggle = false;
 
@@ -106,9 +109,19 @@ public class UI {
         }
 
         // Dialog state
-        if (gp.gameState == gp.dialogState) {
+        if (gp.gameState == gp.dialogueState) {
             drawPlayerHealth();
-            drawDialogScreen();
+            if (npc != null) {
+                drawDialogueScreen();
+            }
+        }
+
+        // Cutscene state
+        if (gp.gameState == gp.cutsceneState) {
+            drawPlayerHealth();
+            if (npc != null) {
+                drawDialogueScreen();
+            }
         }
 
         // Character customization state
@@ -154,7 +167,7 @@ public class UI {
     }
 
     public void trade_select() {
-        drawDialogScreen();
+        drawDialogueScreen();
 
         // Draw window
         int x = gp.tileSize * 15;
@@ -227,15 +240,15 @@ public class UI {
             // Buy an item (Enter or F → enterPressed)
             if (gp.keyHandler.enterPressed) {
                 if (npc.inventory.get(itemIndex).price > gp.player.coin) {
-                    // Not enough coin
+                    // Not enough coin - NPC dialogue set 1, index 0
                     subState = 0;
-                    gp.gameState = gp.dialogState;
-                    currentDialogue = "You don't have enough coin.";
-                    drawDialogScreen();
+                    npc.startDialogue(npc, 1);
+                    npc.dialogueIndex = 0;
                 } else if (gp.player.inventory.size() == gp.player.maxInventorySize) {
-                    gp.gameState = gp.dialogState;
-                    currentDialogue = "Inventory full!";
+                    // Inventory full - NPC dialogue set 1, index 1
                     subState = 0;
+                    npc.startDialogue(npc, 1);
+                    npc.dialogueIndex = 1;
                 } else {
                     // Purchase successful
                     gp.player.coin -= npc.inventory.get(itemIndex).price;
@@ -296,10 +309,11 @@ public class UI {
                 
                 if (gp.player.inventory.get(itemIndex) == gp.player.currentWeapon || 
                     gp.player.inventory.get(itemIndex) == gp.player.currentShield) {
+                    // If the item is equipped - NPC dialogue set 1, index 2
                     commandNumber = 0;
                     subState = 0;
-                    gp.gameState = gp.dialogState;
-                    currentDialogue = "You cannot sell an equipped item.";
+                    npc.startDialogue(npc, 1);
+                    npc.dialogueIndex = 2;
                 } else {
                     // Sell successful
                     gp.player.coin += gp.player.inventory.get(itemIndex).price;
@@ -715,20 +729,28 @@ public class UI {
     public void drawPlayerHealth() {
         // Add a small top margin so HUD isn't tight to the top edge
         final int topHudMargin = gp.tileSize / 4; // ~12px at 48px tiles
+        final int MAX_PER_ROW = 7; // Maximum hearts/crystals per row
 
-        int x = gp.tileSize / 2; // Start position for health display
+        int startX = gp.tileSize / 2; // Start position for health display
+        int x = startX;
         int y = gp.tileSize / 2 + topHudMargin; // Shifted down slightly
         int i = 0;
 
-        // Draw full hearts
-        while (i < gp.player.life / 2) {
+        // Draw blank hearts (max life)
+        while (i < gp.player.maxLife / 2) {
             g2.drawImage(heart_blank, x, y, null);
-            x += gp.tileSize; // Move to the next heart position
             i++;
+            x += gp.tileSize; // Move to the next heart position
+            
+            // Wrap to next row if exceeded 12 hearts
+            if (i % MAX_PER_ROW == 0) {
+                x = startX;
+                y += gp.tileSize;
+            }
         }
 
-        // Reset x position for full hearts
-        x = gp.tileSize / 2;
+        // Reset position for current hearts
+        x = startX;
         y = gp.tileSize / 2 + topHudMargin;
         i = 0;
 
@@ -741,32 +763,56 @@ public class UI {
             }
             i += 1;
             x += gp.tileSize; // Move to the next heart position
+            
+            // Wrap to next row if exceeded 12 hearts
+            if ((i / 2) % MAX_PER_ROW == 0) {
+                x = startX;
+                y += gp.tileSize;
+            }
         }
 
         // Draw mana crystals (scaled up)
         int crystalSize = (int) (gp.tileSize * 1.15); // 120% of tile size
         int crystalGap = (int) (crystalSize * 0.65); // spacing between crystals
-        x = gp.tileSize / 2 - 9;
-        y = gp.tileSize + 20 + topHudMargin; // Position below hearts, also shifted down
+        int crystalStartX = gp.tileSize / 2 - 9;
+        
+        // Calculate y position: hearts can take multiple rows, so start after all heart rows
+        int heartRows = (gp.player.maxLife / 2 + MAX_PER_ROW - 1) / MAX_PER_ROW; // Ceiling division
+        int manaStartY = (gp.tileSize / 2 + topHudMargin) + (heartRows * gp.tileSize);
+        
+        x = crystalStartX;
+        y = manaStartY;
         i = 0;
 
         // Draw blank crystals for max mana
         while (i < gp.player.maxMana) {
             g2.drawImage(crystal_blank, x, y, crystalSize, crystalSize, null);
-            x += crystalGap; // Move to the next crystal position
             i++;
+            x += crystalGap; // Move to the next crystal position
+            
+            // Wrap to next row if exceeded 12 crystals
+            if (i % MAX_PER_ROW == 0) {
+                x = crystalStartX;
+                y += crystalSize;
+            }
         }
 
-        // Reset x position for full crystals
-        x = gp.tileSize / 2 - 9;
-        y = gp.tileSize + 20 + topHudMargin; // Position below hearts, also shifted down
+        // Reset position for current mana
+        x = crystalStartX;
+        y = manaStartY;
         i = 0;
 
         // Draw full crystals for current mana
         while (i < gp.player.mana) {
             g2.drawImage(crystal_full, x, y, crystalSize, crystalSize, null);
-            x += crystalGap; // Move to the next crystal position
             i++;
+            x += crystalGap; // Move to the next crystal position
+            
+            // Wrap to next row if exceeded 12 crystals
+            if (i % MAX_PER_ROW == 0) {
+                x = crystalStartX;
+                y += crystalSize;
+            }
         }
     }
 
@@ -1016,7 +1062,7 @@ public class UI {
 
     }
 
-    public void drawDialogScreen() {
+    public void drawDialogueScreen() {
         // Window
         int x = gp.tileSize * 2;
         int y = gp.tileSize;
@@ -1027,6 +1073,47 @@ public class UI {
         g2.setFont(g2.getFont().deriveFont(28f)); // Set font size for dialogue text
         x += gp.tileSize;
         y += gp.tileSize;
+
+        if (npc.dialogues[npc.dialogueSet][npc.dialogueIndex] != null) {
+            
+            // currentDialogue = npc.dialogues[npc.dialogueSet][npc.dialogueIndex];
+
+            char character[] = npc.dialogues[npc.dialogueSet][npc.dialogueIndex].toCharArray();
+
+            if (charIndex < character.length) {
+                typewriterCounter++;
+                if (typewriterCounter > 1) { // Delay 3 frames between each character (slower)
+                    gp.playSoundEffect(9);
+                    String s = String.valueOf(character[charIndex]);
+                    combinedText += s;
+                    currentDialogue = combinedText;
+                    charIndex++;
+                    typewriterCounter = 0;
+                }
+            }
+
+            if (gp.keyHandler.fPressed) {
+                
+                charIndex = 0;
+                combinedText = "";
+
+                if (gp.gameState == gp.dialogueState || gp.gameState == gp.cutsceneState) {
+                    npc.dialogueIndex++;
+                    gp.keyHandler.fPressed = false;
+                }
+            }
+        } else {
+            npc.dialogueIndex = 0;
+
+            if (gp.gameState == gp.dialogueState) {
+                gp.gameState = gp.playState;
+            }
+
+            if (gp.gameState == gp.cutsceneState) {
+                gp.cutsceneManager.scenePhase++;
+            }
+        }
+
 
         for (String line : currentDialogue.split("\n")) {
             g2.drawString(line, x, y);

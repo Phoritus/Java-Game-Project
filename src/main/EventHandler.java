@@ -1,5 +1,7 @@
 package src.main;
 
+import src.data.Progress;
+
 public class EventHandler {
     GamePanel gp; // Reference to GamePanel
     EventRect eventRect[][][];
@@ -41,7 +43,7 @@ public class EventHandler {
             int rowNow = Math.max(0, Math.min(gp.maxWorldRow - 1, centerY / gp.tileSize));
             // Accept a small vertical band around the spark (rows 12-13, adjusted for new map)
             if (colNow == (23 + offsetX) && (rowNow == (12 + offsetY) || rowNow == (13 + offsetY))) {
-                healingPool(gp.dialogState);
+                healingPool(gp.dialogueState);
                 gp.keyHandler.fPressed = false; // consume press so it fires once per tap
                 previousEventX = gp.player.worldX;
                 previousEventY = gp.player.worldY;
@@ -63,34 +65,39 @@ public class EventHandler {
             // Example event: Teleportation event at tile (26,12) on map 0, adjusted for 100x100
             if (hitEvent(0, 26 + offsetX, 12 + offsetY, "any")) {
                 if (gp.keyHandler.tPressed) { // Check if T key is pressed
-                    teleport(1, 34 + offsetX, 12 + offsetY, gp.areaOutside); // If player hits the event and presses T, teleport
+                    teleport(1, 34 + offsetX, 12 + offsetY, gp.currentArea); // If player hits the event and presses T, teleport
                     gp.keyHandler.tPressed = false; // Reset T key state after use
                 }
             }
             else if (hitEvent(0, 37, 64, "any")) {
-                teleport(1, 12 + offsetX, 11 + offsetY, gp.areaIndoor);
+                teleport(1, 12 + offsetX, 11 + offsetY, gp.indoor);
                 gp.playSoundEffect(13); // tele1.wav
             }
             else if (hitEvent(1, 37, 38, "any")) {
-                teleport(0, 37, 64, gp.areaOutside);
+                teleport(0, 37, 64, gp.outside);
                 gp.playSoundEffect(14); // tele2.wav
             }
             
             // To dungeon
-            else if (hitEvent(0, 34, 34, "any")) {
-                teleport(2, 34, 65, gp.areaDungeon);
+            else if (hitEvent(0, 33, 33, "any")) {
+                teleport(2, 34, 64, gp.dungeon);
                 gp.playSoundEffect(13);
             } else if (hitEvent(2, 34, 66, "any")) {
-                teleport(0, 34, 34, gp.areaOutside);
+                teleport(0, 34, 34, gp.outside);
                 gp.playSoundEffect(14);
             }
 
             else if (hitEvent(2, 33, 32, "any")) {
-                teleport(3, 51, 64, gp.areaDungeon);
+                teleport(3, 51, 65, gp.dungeon);
                 gp.playSoundEffect(13);
-            } else if (hitEvent(3, 51, 66, "any")) {
-                teleport(2, 33, 32, gp.areaDungeon);
+            } else if (hitEvent(3, 50, 66, "any")) {
+                teleport(2, 34, 33, gp.dungeon);
                 gp.playSoundEffect(14);
+            }
+
+            // Minotour battle
+            else if (hitEvent(3, 50, 52, "any")) {
+                minotourBattle();
             }
 
             if (eventTriggered) {
@@ -139,8 +146,9 @@ public class EventHandler {
     }
 
     public void healingPool(int gameState) {
-        gp.gameState = gameState; // Change game state to healing pool
-        gp.ui.currentDialogue = "You feel refreshed!"; // Set dialogue for the player
+        // ใช้ startDialogue แทน (dialogue set 1 = healing pool)
+        gp.player.startDialogue(gp.player, 1);
+        
         gp.player.life = gp.player.maxLife; // Increase player's life to max
         gp.player.mana = gp.player.maxMana; // Increase player's mana to max
         // Prevent life from exceeding max life
@@ -157,6 +165,13 @@ public class EventHandler {
         tempCol = col;
         tempRow = row;
         canTouchEvent = false;
+    }
+
+    public void minotourBattle() {
+        if (gp.bossBattleOn == false && !Progress.minotourDefeated) {
+            gp.gameState = gp.cutsceneState;
+            gp.cutsceneManager.sceneNum = gp.cutsceneManager.minotour;
+        }
     }
 
     // Removed redundant speak(Entity) helper; Player.interactNPC handles talking uniformly.

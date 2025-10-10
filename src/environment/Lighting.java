@@ -80,10 +80,14 @@ public class Lighting {
       gp.player.lightUpdated = false;
     }
 
+    if (gp.keyHandler.godMode) {
+      filterAlpha = 0f; // Disable darkness in god mode
+      return;
+    }
     if (dayState == day) {
       dayCounts++;
 
-      if (dayCounts > 1200) { // After 20 seconds, transition to dusk
+      if (dayCounts > 3600) { // After some time, transition to dusk
         dayState = dusk;
         dayCounts = 0;
         filterAlpha = 0f; // Reset alpha for dusk transition
@@ -118,14 +122,16 @@ public class Lighting {
 
   public void draw(Graphics2D g2) {
 
-    if (gp.currentArea == gp.areaOutside) {
+    if (gp.currentArea == gp.outside) {
       g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, filterAlpha));
+
     }
 
-    if (gp.currentArea == gp.areaOutside || gp.currentArea == gp.areaDungeon) {
+    if (gp.currentArea == gp.outside || gp.currentArea == gp.dungeon) {
       g2.drawImage(darknessFilter, 0, 0, null);
-      g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)); // Reset alpha to full opacity
     }
+
+    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)); // Reset alpha to full opacity
 
     // DEBUG
     String situation = "";

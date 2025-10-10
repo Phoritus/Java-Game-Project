@@ -133,8 +133,13 @@ public class NPC_Merchant extends Entity {
     }
 
     public void setDialogue() {
-        dialogues[0] = "He he, so you found me.\n Looking for something?";
-
+        // Dialogue set 0: Welcome message
+        dialogues[0][0] = "He he, so you found me.\nLooking for something?";
+        
+        // Dialogue set 1: Trade messages
+        dialogues[1][0] = "You need more coin for that,\nadventurer.";
+        dialogues[1][1] = "Your bag is full.\nCome back when you have space.";
+        dialogues[1][2] = "You can't sell an item\nyou're currently using!";
     }
 
     public void setItems() {
@@ -147,18 +152,9 @@ public class NPC_Merchant extends Entity {
     }
 
     public void speak() {
-        super.speak();
-        // Provide dialogue text for the trade overlay's dialog window
-        if (dialogues != null) {
-            String line = dialogues[Math.max(0, Math.min(9, dialogueIndex))];
-            if (line == null || line.isEmpty()) {
-                line = dialogues[0];
-            }
-            if (line != null) {
-                gp.ui.currentDialogue = line;
-            }
-        }
+        // ใช้ startDialogue แทนการ set ค่าโดยตรง
+        startDialogue(this, dialogueSet);
+        
         gp.gameState = gp.tradeState;
-        gp.ui.npc = this;
     }
 }

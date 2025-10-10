@@ -3,6 +3,7 @@ package src.main;
 import src.entity.NPC_Merchant;
 import src.entity.NPC_OldMan;
 import src.monster.MonBlueSlime;
+import src.monster.MonMinotour;
 import src.object.OBJ_Axe;
 import src.object.OBJ_Bed;
 import src.object.OBJ_Boot;
@@ -15,6 +16,7 @@ import src.tiles_interactive.IT_DryTree;
 import src.object.OBJ_Demon_shield;
 import src.object.OBJ_Doors;
 import src.object.OBJ_House;
+import src.object.OBJ_IronDoor;
 
 public class AssetSetter {
 
@@ -81,6 +83,12 @@ public class AssetSetter {
         gp.obj[mapnum][i] = new OBJ_Bed(gp);
         gp.obj[mapnum][i].worldX = gp.tileSize * (39);
         gp.obj[mapnum][i].worldY = gp.tileSize * (34);
+
+        // Iron door for minotour cutscene
+        i++; mapnum = 3;
+        gp.obj[mapnum][i] = new OBJ_IronDoor(gp);
+        gp.obj[mapnum][i].worldX = gp.tileSize * 50;
+        gp.obj[mapnum][i].worldY = gp.tileSize * 40;
     }
 
     public void setNPC() {
@@ -130,6 +138,13 @@ public class AssetSetter {
         gp.monster[mapnum][i] = new MonBlueSlime(gp);
         gp.monster[mapnum][i].worldX = gp.tileSize * (38 + offsetX);
         gp.monster[mapnum][i].worldY = gp.tileSize * (42 + offsetY);
+
+        // Monster 2 - Minotour (Boss)
+        mapnum = 3;
+        i++;
+        gp.monster[mapnum][i] = new MonMinotour(gp);
+        gp.monster[mapnum][i].worldX = gp.tileSize * 46;
+        gp.monster[mapnum][i].worldY = gp.tileSize * 38;
     }
 
     public void setInteractiveTile() {

@@ -31,6 +31,7 @@ public class NPC_OldMan extends Entity {
         type = TYPE_NPC; // Ensure this entity is recognized as an NPC
         collision = true; // NPC should be solid (block player and other entities)
 
+        dialogueSet = -1;
         getNPCImage(); // Load the priest images
         setDialogue(); // Set initial dialogue for the NPC
 
@@ -124,11 +125,15 @@ public class NPC_OldMan extends Entity {
     }
 
     public void setDialogue() {
-        dialogues[0] = "Hello, traveler! Welcome \nto our Forest.";
-        dialogues[1] = "Beware of the dangers that \nlurk within.";
-        dialogues[2] = "If you seek wisdom, you may \nfind it here.";
-        dialogues[3] = "The forest holds many secrets.";
-        dialogues[4] = "Remember to always \nbe cautious.";
+        dialogues[0][0] = "Hello, traveler! Welcome \nto our Forest.";
+        dialogues[0][1] = "Beware of the dangers that \nlurk within.";
+        dialogues[0][2] = "If you seek wisdom, you may \nfind it here.";
+        dialogues[0][3] = "The forest holds many secrets.";
+        dialogues[0][4] = "Remember to always \nbe cautious.";
+
+        dialogues[1][0] = "You have proven yourself \nworthy.";
+        dialogues[1][1] = "Take this amulet as a \ntoken of my gratitude.";
+        dialogues[1][2] = "May it protect you on \nyour journey ahead.";
     }
 
     @Override
@@ -177,7 +182,7 @@ public class NPC_OldMan extends Entity {
         }
 
         // Only move when not in dialogue mode
-        if (gp.gameState != gp.dialogState) {
+        if (gp.gameState != gp.dialogueState) {
             actionLockCounter++;
             if (actionLockCounter == 120) {
                 Random random = new Random();
@@ -203,20 +208,13 @@ public class NPC_OldMan extends Entity {
     }
 
     public void speak() {
-        // Display the current dialogue line
-        if (dialogues[dialogueIndex] != null) {
-            gp.ui.currentDialogue = dialogues[dialogueIndex];
-            dialogueIndex++;
+        
+        facePlayer();
+        startDialogue(this, dialogueSet);
+        dialogueSet++;
 
-            // Reset dialogue index if we've reached the end
-            if (dialogueIndex >= dialogues.length || dialogues[dialogueIndex] == null) {
-                dialogueIndex = 0;
-            }
+        if (dialogues[dialogueSet][0] == null) {
+            dialogueSet = 0; // Reset to first dialogue set if at the end
         }
-
-        // Set dialogue cooldown to prevent immediate movement
-        dialogueCooldown = 180; // 3 seconds at 60 FPS
-
-        super.speak(); // Call the parent speak method to face the player
     }
 }

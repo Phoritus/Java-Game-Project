@@ -43,7 +43,15 @@ public class GamePanel extends JPanel implements Runnable {
     public final int worldWidth = tileSize * maxWorldCol; // 4800 pixels wide
     public final int worldHeight = tileSize * maxWorldRow; // 4800 pixels
     public final int maxMap = 10;
-    public int currentMap = 0;
+
+     public int currentMap = 3;
+
+    // Area settings
+    public int currentArea;
+    public int nextArea;
+    public final int indoor = 50;
+    public final int outside = 51;
+    public final int dungeon = 52;
 
     // For Full Screen
     int screenWidth2 = screenWidth;
@@ -70,6 +78,7 @@ public class GamePanel extends JPanel implements Runnable {
     // System settings
     public src.main.KeyHandler keyHandler = new src.main.KeyHandler(this); // Key handler for input
     EnvironmentManager envManager = new EnvironmentManager(this); // Environment manager for weather, time, etc.
+    public CutsceneManager cutsceneManager = new CutsceneManager(this);
     Thread gameThread; // Thread for game loop
     Config config = new Config(this);
     public TileManager tileManager = new TileManager(this); // Tile manager for handling tiles
@@ -96,20 +105,17 @@ public class GamePanel extends JPanel implements Runnable {
     public final int titleState = 0; // Game is in title screen state
     public final int playState = 1; // Game is in play state
     public final int pauseState = 2; // Game is paused
-    public final int dialogState = 3; // Dialog state for NPC interactions
+    public final int dialogueState = 3; // Dialogue state for NPC interactions
     public final int characterState = 4; // Character customization state
     public final int gameOverState = 6;
     public final int optionState = 7;
     public final int transitionState = 8;
     public final int tradeState = 9;
     public final int sleepState = 10;
+    public final int cutsceneState = 11;
 
-    // Area
-    public int currentArea;
-    public int nextArea;
-    public final int areaOutside = 50;
-    public final int areaIndoor = 51;
-    public final int areaDungeon = 52;
+    // Other
+    public boolean bossBattleOn = false;
 
     // Sound State
     public boolean musicOn = true; // Track if music is on or off
@@ -135,16 +141,36 @@ public class GamePanel extends JPanel implements Runnable {
         });
 
     }
+    
+    public void resetGame(boolean restart) {
+        removeTempEntities();
+        bossBattleOn = false;
+        player.setDefaultValues();
+        player.setItems();
+        assetSetter.setObject();
+        assetSetter.setNPC();
+        assetSetter.setMonster();
+        assetSetter.setInteractiveTile();
+        envManager.setup();
+        if (restart) {
+            player.setDefaultPositions();
+            player.restoreLifeAndMana();
+        } else {
+            player.worldX = tileSize * 26;
+            player.worldY = tileSize * 23;
+        }
+        
+    }
 
     public void setupGame() {
         assetSetter.setObject(); // Set up game objects
-        assetSetter.setNPC(); // Set up NPCsP
+        assetSetter.setNPC(); // Set up NPCs
         assetSetter.setMonster(); // Set up monsters
         assetSetter.setInteractiveTile();
         envManager.setup(); // Set up environment manager
         // playMusic(0); // Play background music
         gameState = titleState; // Set initial game state to title screen
-        currentArea = areaOutside;
+        currentArea = outside;
 
         // Create both back buffers up front so swaps never hit null
         tempScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
@@ -195,6 +221,7 @@ public class GamePanel extends JPanel implements Runnable {
         assetSetter.setInteractiveTile();
         assetSetter.setMonster();
         assetSetter.setNPC();
+        
     }
 
     public void setFullScreen() {
@@ -355,7 +382,7 @@ public class GamePanel extends JPanel implements Runnable {
                 }
             }
 
-        } else if (gameState == dialogState) {
+        } else if (gameState == dialogueState) {
             // During dialog, still update animations but not player movement
             tileManager.update(); // Keep water animations going
             player.update(); // Player handles dialog state internally
@@ -444,6 +471,9 @@ public class GamePanel extends JPanel implements Runnable {
             // Environment (weather, time)
             envManager.draw(g2);
 
+            // Cutscenes
+            cutsceneManager.draw(g2);
+
             // Overlay per-state UI (pause, dialog, trade, options, transition, etc.)
             ui.draw(g2);
         }
@@ -464,7 +494,9 @@ public class GamePanel extends JPanel implements Runnable {
             y += lineHeight;
             g2.drawString("Row: " + (player.worldY + player.solidArea.y) / tileSize, x, y);
             y += lineHeight;
-
+            g2.drawString("God Mode:" + keyHandler.godMode, x, y);
+            y += lineHeight;
+            g2.drawString("Boss Debug Mode:" + keyHandler.bossDebug, x, y);
         }
 
         // Swap buffers atomically so paintComponent always reads a complete frame
@@ -554,21 +586,31 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void changeArea() {
-
         if (nextArea != currentArea) {
+
             stopMusic();
-
-            if (nextArea == areaOutside) {
+            if (nextArea == outside) {
                 playMusic(0);
-            } else if (nextArea == areaIndoor) {
+            } else if (nextArea == indoor) {
                 playMusic(18);
-            } else if (nextArea == areaDungeon) {
-                playMusic(16);
-
+            } else if (nextArea == dungeon) {
+                playMusic(17);
             }
         }
-
         currentArea = nextArea;
         assetSetter.setMonster();
+
     }
+
+    public void removeTempEntities() {
+
+        for (int mapNum = 0; mapNum < maxMap; mapNum++) {
+            for (int i = 0; i < obj[0].length; i++) {
+                if (obj[mapNum][i] != null && obj[mapNum][i].temp) {
+                    obj[mapNum][i] = null;
+                }
+            }
+        }
+    }
+
 }

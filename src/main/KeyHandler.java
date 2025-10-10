@@ -8,7 +8,9 @@ public class KeyHandler implements KeyListener {
     // This class will handle key events for the game
     public boolean upPressed, downPressed, leftPressed, rightPressed, enterPressed, fPressed, tPressed, shortKeypress;
     GamePanel gp; // Reference to GamePanel
-    boolean showDebugText = false;
+    public boolean showDebugText = false;
+    public boolean godMode = false; // God mode flag
+    public boolean bossDebug = false; // Boss debug flag
 
     @Override
     public void keyTyped(KeyEvent e) {
@@ -117,9 +119,9 @@ public class KeyHandler implements KeyListener {
         }
 
         // Dialogue control
-        if (gp.gameState == gp.dialogState) {
+        if (gp.gameState == gp.dialogueState || gp.gameState == gp.cutsceneState) {
             if (keyCode == KeyEvent.VK_F) {
-                gp.gameState = gp.playState; // Exit dialogue state
+                fPressed = true;
             } else if (keyCode == KeyEvent.VK_ESCAPE) {
                 // Exit dialogue state
                 gp.gameState = gp.playState;
@@ -202,6 +204,8 @@ public class KeyHandler implements KeyListener {
             return;
         }
 
+
+        // Trade State
         if (gp.gameState == gp.tradeState) {
             tradeState(keyCode);
         }
@@ -227,6 +231,29 @@ public class KeyHandler implements KeyListener {
                 case 1:
                     gp.tileManager.loadMap("/res/maps/interior01.txt", 0);
                     break;
+            }
+        }
+
+        // God mode toggle
+        if (keyCode == KeyEvent.VK_F3) {
+            godMode = !godMode;
+            if (godMode) {
+                gp.player.invincible = true;
+                showDebugText = true;
+            } else {
+                gp.player.invincible = false;
+                showDebugText = false;
+            }
+        }
+
+        // Boss Debug mode
+        if (keyCode == KeyEvent.VK_F4) {
+            if (gp.currentMap == 3) { // Only allow toggling in the boss map
+                if (!bossDebug) {
+                    bossDebug = true;
+                } else if (bossDebug) {
+                    bossDebug = false;
+                }
             }
         }
 
@@ -267,7 +294,7 @@ public class KeyHandler implements KeyListener {
                 } else if (gp.ui.commandNumber == 2) {
                     // Leave → show farewell dialogue
                     gp.ui.commandNumber = 0;
-                    gp.gameState = gp.dialogState;
+                    gp.gameState = gp.dialogueState;
                     gp.ui.currentDialogue = "He he, come back anytime.";
                 }
                 enterPressed = false; // consume

@@ -14,13 +14,18 @@ import src.main.GamePanel;
 import src.main.UtilityTool;
 
 public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable {
-    protected GamePanel gp; // Reference to the GamePanel for accessing game state
+
+    // State
+    protected GamePanel gp;
     public int worldX, worldY; // World coordinates of the entity
     public int screenX, screenY; // Screen coordinates of the entity
+    public boolean sleep = false;
+    public boolean temp = false;
+    public boolean drawing = true;
 
     public BufferedImage up1, up2, up3, up4, up5; // Images for animations
     public BufferedImage down1, down2, down3, down4, down5;
-    public BufferedImage left1, left2, left3, left4, left5;
+    public BufferedImage left1, left2, left3, left4, left5, left6, left7;
     public BufferedImage right1, right2, right3, right4, right5;
     public String direction = "down"; // Direction of the entity
     public BufferedImage image, image2, image3; // Images for the entity
@@ -45,13 +50,16 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
     public int solidAreaDefaultX, solidAreaDefaultY; // Default position of the solid area
 
     // Animation system variables
-    public BufferedImage[][] animationImages = new BufferedImage[5][6]; // [direction][frame]
+    public BufferedImage[][] animationImages = new BufferedImage[5][16]; // [direction][frame] - increased to 16 frames
     public int frameIndex = 0; // Current frame index for animation
     public int idleFrame = 1; // Current idle frame
+    public int motion1_duration = 0; // Duration for motion/attack pattern 1
+    public int motion2_duration = 0; // Duration for motion/attack pattern 2
 
     public int actionLockCounter = 0; // Counter to lock actions for a certain period
-    String dialogues[] = new String[10]; // Array to hold dialogue strings
-    int dialogueIndex = 0; // Current dialogue index
+    public String dialogues[][] = new String[20][20]; // 2D Array to hold dialogue strings [set][line]
+    public int dialogueSet = 0; // Current dialogue set (for different conversation branches)
+    public int dialogueIndex = 0; // Current dialogue index within the set
 
     // Character attributes
     public String name;
@@ -118,8 +126,9 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
         }
     }
 
-    public void speak() {
-        // NPC should face OPPOSITE direction of player (face towards player)
+    public void speak() {}
+
+    public void facePlayer() {
         switch (gp.player.direction) {
             case "up":
                 direction = "down"; // Player facing up, NPC faces down (towards player)
@@ -136,85 +145,94 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
         }
     }
 
+    public void startDialogue(Entity entity, int setNum) {
+        
+        gp.gameState = gp.dialogueState;
+        gp.ui.npc = entity;
+        dialogueSet = setNum;
+    }
+
     public boolean use(Entity entity) {
         return false;
     }
 
     public void update() {
-        setAction();
+        if (!sleep) {
+            setAction();
 
-        collisionOn = false; // Reset collision flag before moving
-        gp.cChecker.checkTile(this); // Check for tile collisions
-        gp.cChecker.checkObject(this, false); // Check for object collisions
-        gp.cChecker.checkEntity(this, gp.monster); // Check for monster collisions
-        boolean contactPlayer = gp.cChecker.checkPlayer(this);
-
-        // Monster damages player on contact with invincibility cooldown
-        if (this.type == TYPE_MONSTER && contactPlayer && this.alive && !this.dying) {
-            damagePlayer(attack);
-        }
-
-        // Check for object collisions only if no tile collision
-        if (!collisionOn) {
+            collisionOn = false; // Reset collision flag before moving
+            gp.cChecker.checkTile(this); // Check for tile collisions
             gp.cChecker.checkObject(this, false); // Check for object collisions
-        }
+            gp.cChecker.checkEntity(this, gp.monster); // Check for monster collisions
+            boolean contactPlayer = gp.cChecker.checkPlayer(this);
 
-        // Check for entity collisions (NPC vs NPC, NPC vs Player)
-        if (!collisionOn) {
-            gp.cChecker.checkEntity(this, gp.npc); // Check for NPC collisions
-        }
-
-        // Check for player collision (prevent NPC from walking through player)
-        if (!collisionOn) {
-            boolean playerCollision = gp.cChecker.checkPlayer(this); // Check if NPC hits player
-            if (playerCollision) {
-                collisionOn = true; // Block movement if hitting player
+            // Monster damages player on contact with invincibility cooldown
+            if (this.type == TYPE_MONSTER && contactPlayer && this.alive && !this.dying) {
+                damagePlayer(attack);
             }
-        }
 
-        // Only move if no collision detected
-        if (!collisionOn) {
-            switch (direction) {
-                case "up":
-                    worldY -= speed;
-                    break;
-                case "down":
-                    worldY += speed;
-                    break;
-                case "left":
-                    worldX -= speed;
-                    break;
-                case "right":
-                    worldX += speed;
-                    break;
-                case "idle":
-                    // Idle logic can be added here
-                    break;
+            // Check for object collisions only if no tile collision
+            if (!collisionOn) {
+                gp.cChecker.checkObject(this, false); // Check for object collisions
             }
-        }
 
-        spriteCounter++;
-        if (spriteCounter > 10) { // Change frame every 10 updates
-            spriteCounter = 0;
-            frameIndex++;
-            if (frameIndex >= animationImages[0].length) {
-                frameIndex = 0; // Reset to first frame
+            // Check for entity collisions (NPC vs NPC, NPC vs Player)
+            if (!collisionOn) {
+                gp.cChecker.checkEntity(this, gp.npc); // Check for NPC collisions
             }
-        }
 
-        // Player's invincibility countdown is handled in Player.update() to avoid
-        // incrementing multiple times per frame (once per entity update).
-
-        // Handle this entity's own invincibility (e.g., monsters)
-        if (this != gp.player && this.invincible) {
-            this.invincibleCounter++;
-            if (this.invincibleCounter > 30) { // half a second of i-frames
-                this.invincible = false;
-                this.invincibleCounter = 0;
+            // Check for player collision (prevent NPC from walking through player)
+            if (!collisionOn) {
+                boolean playerCollision = gp.cChecker.checkPlayer(this); // Check if NPC hits player
+                if (playerCollision) {
+                    collisionOn = true; // Block movement if hitting player
+                }
             }
-        }
-        if (shotAvailableCounter < 30) {
-            shotAvailableCounter++;
+
+            // Only move if no collision detected
+            if (!collisionOn) {
+                switch (direction) {
+                    case "up":
+                        worldY -= speed;
+                        break;
+                    case "down":
+                        worldY += speed;
+                        break;
+                    case "left":
+                        worldX -= speed;
+                        break;
+                    case "right":
+                        worldX += speed;
+                        break;
+                    case "idle":
+                        // Idle logic can be added here
+                        break;
+                }
+            }
+
+            spriteCounter++;
+            if (spriteCounter > 10) { // Change frame every 10 updates
+                spriteCounter = 0;
+                frameIndex++;
+                if (frameIndex >= animationImages[0].length) {
+                    frameIndex = 0; // Reset to first frame
+                }
+            }
+
+            // Player's invincibility countdown is handled in Player.update() to avoid
+            // incrementing multiple times per frame (once per entity update).
+
+            // Handle this entity's own invincibility (e.g., monsters)
+            if (this != gp.player && this.invincible) {
+                this.invincibleCounter++;
+                if (this.invincibleCounter > 30) { // half a second of i-frames
+                    this.invincible = false;
+                    this.invincibleCounter = 0;
+                }
+            }
+            if (shotAvailableCounter < 30) {
+                shotAvailableCounter++;
+            }
         }
     }
 
@@ -279,10 +297,10 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
         int speed = generator.getParticleSpeed();
         int maxLife = generator.getParticleMaxLife();
 
-    Particle p1 = new Particle(gp, color, target, size, maxLife, speed, -2, -1);
-    Particle p2 = new Particle(gp, color, target, size, maxLife, speed, 2, -1);
-    Particle p3 = new Particle(gp, color, target, size, maxLife, speed, -2, 1);
-    Particle p4 = new Particle(gp, color, target, size, maxLife, speed, 2, 1);
+        Particle p1 = new Particle(gp, color, target, size, maxLife, speed, -2, -1);
+        Particle p2 = new Particle(gp, color, target, size, maxLife, speed, 2, -1);
+        Particle p3 = new Particle(gp, color, target, size, maxLife, speed, -2, 1);
+        Particle p4 = new Particle(gp, color, target, size, maxLife, speed, 2, 1);
         gp.particleList.add(p1);
         gp.particleList.add(p2);
         gp.particleList.add(p3);
@@ -400,6 +418,20 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
             image = ImageIO.read(getClass().getResourceAsStream(imagePath));
             // Scale the image to the tile size
             image = uTool.scaleImage(image, gp.tileSize, gp.tileSize);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return image;
+    }
+
+    // Overloaded setup method with custom width and height
+    public BufferedImage setup(String imagePath, int width, int height) {
+        UtilityTool uTool = new UtilityTool();
+        BufferedImage image = null;
+        try {
+            image = ImageIO.read(getClass().getResourceAsStream(imagePath));
+            // Scale the image to the specified width and height
+            image = uTool.scaleImage(image, width, height);
         } catch (Exception e) {
             e.printStackTrace();
         }

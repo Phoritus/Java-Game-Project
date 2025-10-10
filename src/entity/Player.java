@@ -25,7 +25,6 @@ public class Player extends Entity {
     public boolean attackCanceled = false;
     public boolean lightUpdated = false;
 
-
     // Animation images for all directions (6 frames each)
     public BufferedImage[][] animationImages = new BufferedImage[5][6]; // [direction][frame]
     // 0=up, 1=down, 2=left, 3=right, 4=legacy idle (unused after directional idle)
@@ -74,6 +73,7 @@ public class Player extends Entity {
         getAttackImage(); // Load attack images
         setItems(); // Initialize inventory items
         getSleepingImage(); // Load sleeping image
+        setDialogue(); // Set initial dialogue
     }
 
     public BufferedImage sleepingImage;
@@ -82,14 +82,13 @@ public class Player extends Entity {
         sleepingImage = setup("res/objects/bed.png");
     }
 
-    
-    
-
     public void setDefaultValues() {
         // worldX = gp.tileSize * 12; // Initial X position - center of 50x50 map
         // worldY = gp.tileSize * 10; // Initial Y position - center of 50x50 map
-        worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos + offset)
-        worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos + offset)
+        // worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos + offset)
+        // worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos + offset)
+        worldX = gp.tileSize * 50; // New starting position for map 3
+        worldY = gp.tileSize * 54; // New starting position for map 3
         // speed = 4; // Base speed
         direction = "down"; // Default direction
 
@@ -103,10 +102,8 @@ public class Player extends Entity {
         ammo = 10;
         nextLevelExp = 5;
         coin = 0;
-        // Inventory capacity (used by UI buy and item pickups)
-        // Default matches UI grid (inventoryCols x inventoryRows = 5 x 4 = 20)
-        // You can tweak at runtime if you change UI layout.
         this.maxInventorySize = 20;
+        
         // Initialize mana so UI can render crystals
         maxMana = 4;
         mana = maxMana;
@@ -137,6 +134,26 @@ public class Player extends Entity {
         mana = maxMana;
         invincible = false;
     }
+    
+    public void setDialogue() {
+        // Dialogue set 0: Level up
+        dialogues[0][0] = "You leveled up! You are now level " + level + "!\n"
+                    + "Max Life increased by 2\n"
+                    + "Mana increased by 1\n"
+                    + "Strength increased by 1\n"
+                    + "Dexterity increased by 1";
+        
+        // Dialogue set 1: Healing pool
+        dialogues[1][0] = "You feel refreshed!";
+        
+        // Dialogue set 2: Potion use (will be set dynamically in OBJ_Potion)
+        dialogues[2][0] = ""; // Placeholder
+        
+        // Dialogue set 3: Trade messages
+        dialogues[3][0] = "You don't have enough coin.";
+        dialogues[3][1] = "Inventory full!";
+        dialogues[3][2] = "You cannot sell an equipped item.";
+    }
 
     public void setItems() {
         inventory.clear();
@@ -166,7 +183,6 @@ public class Player extends Entity {
 
         // Talk with F key only
         if (index != -1 && gp.keyHandler.fPressed) {
-            gp.gameState = gp.dialogState; // Change game state to dialog
             gp.npc[gp.currentMap][index].speak(); // Call the speak method of the NPC
             gp.keyHandler.fPressed = false; // Reset F after successful interaction
         }
@@ -258,12 +274,9 @@ public class Player extends Entity {
             defense = getDefense();
 
             gp.playSoundEffect(8);
-            gp.gameState = gp.dialogState;
-            gp.ui.currentDialogue = "You leveled up! You are now level " + level + "!\n"
-                    + "Max Life increased by 2\n"
-                    + "Mana increased by 1\n"
-                    + "Strength increased by 1\n"
-                    + "Dexterity increased by 1";
+            gp.gameState = gp.dialogueState;
+            setDialogue();      
+            startDialogue(this, 0); // Show level up dialogue
         }
     }
 
@@ -516,7 +529,7 @@ public class Player extends Entity {
         speed = 4 + Math.max(0, speedBonus);
 
         // Don't update player movement during dialogue
-        if (gp.gameState == gp.dialogState) {
+        if (gp.gameState == gp.dialogueState) {
             // Keep idle animation during dialogue
             handleIdleState();
             isIdle = true;
@@ -556,7 +569,7 @@ public class Player extends Entity {
             collisionOn = false;
 
             // Debug collision bypass
-            gp.cChecker.checkTile(this);
+            // gp.cChecker.checkTile(this);
 
             // Check for object collisions and handle them
             int objIndex = gp.cChecker.checkObject(this, true);
@@ -670,10 +683,21 @@ public class Player extends Entity {
             mana = maxMana;
         }
 
-        if (life <= 0) {
-            gp.gameState = gp.gameOverState;
-            gp.playSoundEffect(12);
-            gp.stopMusic();
+        // God Mode
+        if (!keyH.godMode) {
+            if (life <= 0) {
+                gp.gameState = gp.gameOverState;
+                gp.playSoundEffect(12);
+                gp.stopMusic();
+            }
+        } else {
+            if (life <= 0) {
+                life = 1;
+            }
+            if (mana <= 0) {
+                mana = 1;
+            }
+            strength = 10;
         }
 
         // Reset hit combo if no hit landed within 3 seconds
@@ -853,7 +877,8 @@ public class Player extends Entity {
                 // Use consumable
                 selectedItem.use(this);
                 inventory.remove(itemIndex);
-            } if (selectedItem.type == TYPE_LIGHT) {
+            }
+            if (selectedItem.type == TYPE_LIGHT) {
                 if (currentLight == selectedItem) {
                     currentLight = null;
                 } else {
@@ -919,7 +944,7 @@ public class Player extends Entity {
             // Ensure nearest-neighbor when scaling to larger size (avoid blur)
             g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
-            
+
             // Use smaller size for bed sprite, normal size for player animations
             int scaledSize;
             if (gp.gameState == gp.sleepState && image == sleepingImage) {
@@ -927,10 +952,14 @@ public class Player extends Entity {
             } else {
                 scaledSize = (int) (gp.tileSize * 2.5); // 2.5x for player sprites
             }
-            
+
             int centerX = gp.screenWidth / 2 - scaledSize / 2;
             int centerY = gp.screenHeight / 2 - scaledSize / 2;
-            g2.drawImage(image, centerX, centerY, scaledSize, scaledSize, null);
+
+            if (drawing) {
+                g2.drawImage(image, centerX, centerY, scaledSize, scaledSize, null);                
+            } 
+            
         } else {
             // Fallback: White rectangle if no image is available
             g2.setColor(Color.WHITE);
@@ -940,6 +969,7 @@ public class Player extends Entity {
             int centerY = gp.screenHeight / 2 - scaledSize / 2;
             g2.fillRect(centerX, centerY, scaledSize, scaledSize);
         }
+
         // Restore original composite so other draws aren't affected
         g2.setComposite(oldComposite);
         // Draw solid area for debugging (hit box)
