@@ -997,7 +997,7 @@ public class UI {
 
         // Draw title screen background
         g2.setFont(g2.getFont().deriveFont(60f)); // Set larger font for title
-        String titleText = "Rpg Adventure Game"; // Replace with your game title
+        String titleText = "Aiden Adventure Game"; // Replace with your game title
         int x = getXforCenteredText(titleText);
         int y = gp.screenHeight / 3; // Fixed: divide by 3, not multiply by 3
 

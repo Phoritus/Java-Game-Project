@@ -27,14 +27,123 @@ public class CutsceneManager {
   public CutsceneManager(GamePanel gp) {
     this.gp = gp;
 
-    endCredit = "Programming & Design\n" +
-                "Hoop\n\n\n\n\n\n" +
-                "by ChatGPT & OpenAI\n\n" +
-                "Art & Assets\n" +
-                "by itch.io\n\n" +
-                "Music & Sound Effects\n" +
-                "by Pixabay.com\n\n" +
-                "Thank you for playing!";
+  endCredit = "Hoop — End Credits\n\n\n\n\n\n\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "GAME DESIGN & PROGRAMMING\n" +
+    "───────────────────────────────\n\n" +
+  "Lead Developer & Designer: Hoop\n" +
+  "Gameplay Systems, Collision,\n" +
+  "Animation, UI & Logic\n" +
+    "Story Implementation and Event Handling\n" +
+    "Engine Architecture and Optimization\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "STORY & CREATIVE DIRECTION\n" +
+    "───────────────────────────────\n\n" +
+    "Narrative Concept and Dialogue: Hoop\n" +
+    "Lore Building and Character Design: Hoop\n" +
+    "World Structure and Pacing: Hoop\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "DEVELOPMENT ASSISTANCE\n" +
+    "───────────────────────────────\n\n" +
+  "ChatGPT (OpenAI), Claude (Anthropic)\n" +
+  "Brainstorming, Debugging,\n" +
+  "Feature Planning, and Writing Support\n" +
+  "System Design Consultation\n" +
+  "and Creative Feedback\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "SPECIAL INSPIRATION\n" +
+    "───────────────────────────────\n\n" +
+  "RyiSnow — YouTube Channel\n" +
+  "For the incredible 'How to Make a 2D Game in Java'\n" +
+  "tutorial series,\n" +
+  "which inspired and guided the development of\n" +
+  "this entire project.\n" +
+    "Thank you for sharing your knowledge and passion.\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "ART & VISUAL ASSETS\n" +
+    "───────────────────────────────\n\n" +
+  "Original and modified assets\n" +
+  "from talented creators on itch.io\n" +
+    "Environmental Tiles, Characters, Items, and FX\n" +
+  "Edited and customized using Piskel\n" +
+  "by Hoop Studio\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "MUSIC & SOUND EFFECTS\n" +
+    "───────────────────────────────\n\n" +
+  "Royalty-free background music\n" +
+  "and effects from Pixabay\n" +
+  "Additional sound editing and mastering\n" +
+  "by Hoop Studio\n" +
+    "Enhanced ambient effects for immersion\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "DEVELOPMENT TOOLS\n" +
+    "───────────────────────────────\n\n" +
+  "Visual Studio Code — Main\n" +
+  "Development Environment\n" +
+    "Piskel — Sprite & Animation Editor\n" +
+  "Aseprite (Trial) — Color Palette\n" +
+  "and Frame Preview\n" +
+  "Git & GitHub — Version Control\n" +
+  "and Backup\n" +
+  "IntelliJ IDEA — Resource Management\n" +
+  "& Testing\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "PLAYTESTING & FEEDBACK\n" +
+    "───────────────────────────────\n\n" +
+  "Special thanks to everyone\n" +
+  "who tested early builds,\n" +
+  "shared feedback, and reported bugs\n" +
+  "that shaped the final release.\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "SPECIAL THANKS\n" +
+    "───────────────────────────────\n\n" +
+    "- The Indie Dev Community for \nopen resources & tutorials\n" +
+    "- Friends & Family for \nconstant encouragement\n" +
+    "- Fellow developers who keep \ncreating despite challenges\n" +
+    "- And you — the player — for \ncompleting this journey\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "DEDICATION\n" +
+    "───────────────────────────────\n\n" +
+  "Dedicated to every creator who dreams, codes,\n" +
+  "and builds worlds\n" +
+    "from nothing but imagination and persistence.\n" +
+  "Every frame, every sound, every line of \ncode —" +
+  "born from passion.\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "EPILOGUE\n" +
+    "───────────────────────────────\n\n" +
+    "With the Ancient Crystal now glowing once more,\n" +
+  "the darkness that once shrouded the land\n" +
+  "fades into memory.\n" +
+    "Peace has returned... for now.\n\n" +
+    "Yet somewhere in the distance,\n" +
+    "a new shadow begins to stir.\n\n" +
+    "Aiden’s journey is far from over.\n" +
+  "Every ending is simply the start of\n" +
+  "another tale.\n\n\n" +
+
+    "───────────────────────────────\n" +
+    "THANK YOU\n" +
+    "───────────────────────────────\n\n" +
+  "From all of us at Hoop Studio —\n" +
+  "thank you for playing.\n" +
+  "Your time, curiosity, and support make this\n" +
+  "world possible.\n\n" +
+    "See you in the next adventure.\n\n" +
+    "— Hoop Studio —\n\n" +
+    "© 2025 All Rights Reserved\n";
+
   }
 
   public void draw(Graphics2D g2) {
@@ -154,7 +263,9 @@ public class CutsceneManager {
     if (scenePhase == 2) {
       // Enter dedicated cutscene state so HUD (hearts/mana) doesn't draw
       gp.gameState = gp.cutsceneState;
-      gp.playSoundEffect(4);
+
+      // Play sound effect
+      gp.playSoundEffect(20);
       scenePhase++;
     }
 
@@ -189,16 +300,15 @@ public class CutsceneManager {
         alpha = 1f;
       }
 
-      String text =
-        "With the Ancient Crystal in your grasp,\n" +
-        "the darkness that once plagued the land fades away.\n\n" +
-        "Peace has returned... for now.\n\n" +
-        "But the journey of Aiden is far from over.\n\n" +
-        "Now, a new adventure awaits beyond the horizon.";
+      String text = "With the Ancient Crystal in your grasp,\n" +
+          "the darkness that once plagued the land fades away.\n\n" +
+          "Peace has returned... for now.\n" +
+          "But the journey of Aiden is far from over.\n" +
+          "Now, a new adventure awaits beyond the horizon.";
       drawString(alpha, 38f, gp.tileSize * 3, text, 70);
 
       if (counterReached(600)) {
-        gp.playMusic(0);
+        gp.playMusicOnce(19); // Play ending music once, no loop
         scenePhase++;
       }
     }
@@ -206,21 +316,21 @@ public class CutsceneManager {
     if (scenePhase == 6) {
       drawBlackBackground(1f);
 
-      drawString(.1f, 120f, gp.screenHeight/2, "Aiden Adventure", 40);
+      drawString(1f, 120f, gp.screenHeight / 2, "Aiden Adventure", 40);
       if (counterReached(480)) {
         scenePhase++;
       }
     }
 
     if (scenePhase == 7) {
-        drawBlackBackground(1f);
+      drawBlackBackground(1f);
 
-        y = gp.screenHeight / 2;
-        drawString(1f, 38f, gp.screenHeight/2, endCredit, 40);
+      y = gp.screenHeight / 2;
+      drawString(1f, 38f, gp.screenHeight / 2, endCredit, 40);
 
-        if (counterReached(480)) {
-          scenePhase++;
-        }
+      if (counterReached(480)) {
+        scenePhase++;
+      }
     }
 
     if (scenePhase == 8) {
@@ -229,6 +339,18 @@ public class CutsceneManager {
       // Scroll text upwards
       y -= 1;
       drawString(1f, 38f, y, endCredit, 40);
+      if (counterReached(6650)) {scenePhase++;}
+    }
+
+    if (scenePhase == 9) {
+      // Reset everything
+      drawBlackBackground(1f);
+      gp.stopMusic();
+      scenePhase = 0;
+      sceneNum = 0;
+      gp.gameState = gp.titleState;
+      gp.ui.npc = null;
+      gp.player.setDefaultPositions();      
     }
 
   }
@@ -254,14 +376,19 @@ public class CutsceneManager {
     g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
     g2.setColor(Color.WHITE);
     g2.setFont(g2.getFont().deriveFont(fontSize));
-    
-    for (String line : text.split("\n")) {
-      // Center text based on current screen size and current font metrics
-      java.awt.FontMetrics fm = g2.getFontMetrics();
+
+    java.awt.FontMetrics fm = g2.getFontMetrics();
+    // Only honor explicit newlines; do not auto-wrap by spaces
+    String[] lines = text.split("\n", -1);
+    for (String line : lines) {
+      if (line.isEmpty()) {
+        y += lineHeight;
+        continue;
+      }
       int textWidth = fm.stringWidth(line);
       int x = (gp.screenWidth - textWidth) / 2;
       g2.drawString(line, x, y);
-      y += lineHeight; // Move to next line position
+      y += lineHeight;
     }
     g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
 

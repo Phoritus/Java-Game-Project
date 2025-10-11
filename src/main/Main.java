@@ -11,7 +11,7 @@ public class Main {
         window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);
-        window.setTitle("Rpg Adventure Game");
+        window.setTitle("Aiden Adventure Game");
         new Main().setIcon();
 
         GamePanel gamePanel = new GamePanel();
@@ -35,7 +35,7 @@ public class Main {
 
     public void setIcon() {
         // Set the game window icon
-        ImageIcon icon = new ImageIcon(getClass().getResource("/res/player/player_idle/idle1.png"));
+        ImageIcon icon = new ImageIcon(getClass().getResource("/res/objects/icon_game.png"));
         window.setIconImage(icon.getImage());
     }
 }

@@ -124,7 +124,12 @@ public class GamePanel extends JPanel implements Runnable {
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         this.setBackground(Color.BLACK);
-        this.setDoubleBuffered(true); // Enable double buffering for smoother rendering
+    // We implement our own offscreen buffering; disable Swing's double buffering to avoid conflicts/flicker
+    this.setDoubleBuffered(false);
+        // Also disable Swing's global double buffering for this component hierarchy
+        try {
+            javax.swing.RepaintManager.currentManager(this).setDoubleBufferingEnabled(false);
+        } catch (Exception ignore) {}
         // Additional initialization code can go here
         this.addKeyListener(keyHandler); // Add key listener for input handling
         this.setFocusable(true); // Make the panel focusable to receive key events
@@ -518,7 +523,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
+        // Avoid Swing's default background clear to reduce flicker in fullscreen; we draw a full-frame buffer below
         BufferedImage toDraw;
         synchronized (frameLock) {
             toDraw = tempScreen;
@@ -550,6 +555,11 @@ public class GamePanel extends JPanel implements Runnable {
                 java.awt.RenderingHints.VALUE_RENDER_SPEED);
 
         g2d.drawImage(toDraw, dx, dy, drawW, drawH, null);
+
+        // On Windows, ensure display sync to reduce tearing/flicker
+        try {
+            java.awt.Toolkit.getDefaultToolkit().sync();
+        } catch (Exception ignore) {}
     }
 
     public void playMusic(int musicIndex) {
@@ -557,6 +567,15 @@ public class GamePanel extends JPanel implements Runnable {
         if (musicOn) {
             music.play(); // Play the music only if music is on
             music.loop(); // Loop the music continuously
+        }
+    }
+
+    // Play background music once (no loop), useful for endings/short themes
+    public void playMusicOnce(int musicIndex) {
+        music.setFile(musicIndex);
+        if (musicOn) {
+            music.play();
+            // Do NOT loop
         }
     }
 
