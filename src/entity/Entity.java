@@ -415,7 +415,17 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
         UtilityTool uTool = new UtilityTool();
         BufferedImage image = null;
         try {
-            image = ImageIO.read(getClass().getResourceAsStream(imagePath));
+            // Try absolute path lookup first
+            java.io.InputStream is = getClass().getResourceAsStream(imagePath);
+            if (is == null) {
+                // Fallback: try relative path (without leading slash)
+                String rel = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
+                is = getClass().getResourceAsStream(rel);
+            }
+            if (is == null) {
+                throw new IllegalArgumentException("Resource not found: " + imagePath);
+            }
+            image = ImageIO.read(is);
             // Scale the image to the tile size
             image = uTool.scaleImage(image, gp.tileSize, gp.tileSize);
         } catch (Exception e) {
@@ -429,7 +439,17 @@ public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable
         UtilityTool uTool = new UtilityTool();
         BufferedImage image = null;
         try {
-            image = ImageIO.read(getClass().getResourceAsStream(imagePath));
+            // Try absolute path lookup first
+            java.io.InputStream is = getClass().getResourceAsStream(imagePath);
+            if (is == null) {
+                // Fallback: try relative path (without leading slash)
+                String rel = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
+                is = getClass().getResourceAsStream(rel);
+            }
+            if (is == null) {
+                throw new IllegalArgumentException("Resource not found: " + imagePath);
+            }
+            image = ImageIO.read(is);
             // Scale the image to the specified width and height
             image = uTool.scaleImage(image, width, height);
         } catch (Exception e) {

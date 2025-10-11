@@ -83,14 +83,12 @@ public class Player extends Entity {
     }
 
     public void setDefaultValues() {
-        // worldX = gp.tileSize * 12; // Initial X position - center of 50x50 map
-        // worldY = gp.tileSize * 10; // Initial Y position - center of 50x50 map
-        // worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos +
+        worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos +
         // offset)
-        // worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos +
+        worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos +
         // offset)
-        worldX = gp.tileSize * 50; // New starting position for map 3
-        worldY = gp.tileSize * 54; // New starting position for map 3
+        // worldX = gp.tileSize * 50; // New starting position for map 3
+        // worldY = gp.tileSize * 54; // New starting position for map 3
         // speed = 4; // Base speed
         direction = "down"; // Default direction
 
@@ -118,13 +116,13 @@ public class Player extends Entity {
     }
 
     public void setDefaultPositions() {
-        // worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos +
+        worldX = gp.tileSize * (23 + 24); // Adjusted for 100x100 map (old pos +
         // offset)
-        // worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos +
+        worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos +
         // offset)
-        worldX = gp.tileSize * 50; // New starting position for map 3
-        worldY = gp.tileSize * 36; // New starting position for map 3
-        gp.currentMap = 3;
+        // worldX = gp.tileSize * 50; // New starting position for map 3
+        // worldY = gp.tileSize * 36; // New starting position for map 3
+        gp.currentMap = 0;
         gp.playMusic(0);
         direction = "down"; // Default direction
         attacking = false;

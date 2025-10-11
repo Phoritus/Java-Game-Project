@@ -30,7 +30,8 @@ public class OBJ_Fireball extends Projectile implements src.interfaces.ManaConsu
 
 
     public void getImage() {
-        String base = "/res/projectile/fireball/";
+        // Avoid trailing slash to prevent accidental double slashes in paths
+        String base = "/res/projectile/fireball";
         // Use actual filenames present in res folder (.png)
         up1 = setup(base + "/UFB/FB001.png");
         up2 = setup(base + "/UFB/FB002.png");
