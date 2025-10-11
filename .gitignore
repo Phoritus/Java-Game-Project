@@ -1,4 +1,12 @@
-# Ignore compiled class files
+# Ignore compiled class files and build artifacts
 *.class
-/out
-.jar
+/out/
+*.jar
+*.log
+build.log
+
+# OS/editor junk
+*.DS_Store
+Thumbs.db
+.vscode/
+.idea/
