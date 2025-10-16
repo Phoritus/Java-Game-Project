@@ -1042,24 +1042,14 @@ public class UI {
             g2.drawString(">", menuX - 50, menuY);
         }
 
-        // LOAD GAME
-        menuText = "LOAD GAME";
+    // QUIT GAME
+        menuText = "QUIT GAME";
         menuX = getXforCenteredText(menuText);
         g2.setColor(Color.WHITE);
         g2.drawString(menuText, menuX, menuY + 70); // Adjusted position for better visibility
         if (commandNumber == 1) {
             g2.setColor(Color.YELLOW);
             g2.drawString(">", menuX - 50, menuY + 70);
-        }
-
-        // QUIT GAME
-        menuText = "QUIT GAME";
-        menuX = getXforCenteredText(menuText);
-        g2.setColor(Color.WHITE);
-        g2.drawString(menuText, menuX, menuY + 140); // Adjusted position for better visibility
-        if (commandNumber == 2) {
-            g2.setColor(Color.YELLOW);
-            g2.drawString(">", menuX - 50, menuY + 140);
         }
 
     }

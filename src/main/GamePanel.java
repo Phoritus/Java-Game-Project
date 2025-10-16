@@ -5,6 +5,7 @@ import javax.swing.SwingUtilities;
 import src.entity.Entity;
 import src.entity.Player;
 import src.environment.EnvironmentManager;
+import src.environment.Lighting;
 import src.tile.TileManager;
 import src.tiles_interactive.InteractiveTile;
 
@@ -212,13 +213,36 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void retry() {
-        player.setDefaultPositions();
         player.restoreLifeAndMana();
-        assetSetter.setNPC();
-        assetSetter.setMonster();
-        if (musicOn) {
-            playMusic(0);
-        }
+            // 1) Restore player first
+            player.restoreLifeAndMana();
+
+            // 2) Switch back to play state immediately
+            gameState = playState;
+
+            // 4) Reset boss/cutscene state so minotour cutscene can trigger again
+            bossBattleOn = false;
+            if (cutsceneManager != null) {
+                cutsceneManager.sceneNum = 0; // NA
+                cutsceneManager.scenePhase = 0;
+                cutsceneManager.counter = 0;
+            }
+            if (ui != null) ui.npc = null;
+
+            // Remove lingering PlayerDummy if any
+            for (int map = 0; map < maxMap; map++) {
+                for (int i = 0; i < npc[map].length; i++) {
+                    if (npc[map][i] instanceof src.entity.PlayerDummy) {
+                        npc[map][i] = null;
+                    }
+                }
+            }
+            // 6) Reposition and repopulate actors
+            player.setDefaultPositions();
+
+            // 7) Give brief i-frames on respawn
+            player.invincible = true;
+            player.invincibleCounter = 0;
     }
 
     public void setFullScreen() {

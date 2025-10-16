@@ -1,6 +1,7 @@
 package src.entity;
 
 import src.main.KeyHandler;
+import src.environment.Lighting;
 import src.main.GamePanel;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -91,6 +92,7 @@ public class Player extends Entity {
         // worldY = gp.tileSize * 54; // New starting position for map 3
         // speed = 4; // Base speed
         direction = "down"; // Default direction
+        
 
         // Player status
         level = 1;
@@ -120,6 +122,7 @@ public class Player extends Entity {
         // offset)
         worldY = gp.tileSize * (14 + 25); // Adjusted for 100x100 map (old pos +
         // offset)
+        gp.gameState = gp.playState;
         // worldX = gp.tileSize * 50; // New starting position for map 3
         // worldY = gp.tileSize * 36; // New starting position for map 3
         gp.currentMap = 0;

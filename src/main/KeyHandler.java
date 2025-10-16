@@ -31,12 +31,12 @@ public class KeyHandler implements KeyListener {
             if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
                 gp.ui.commandNumber--; // Move up in the menu
                 if (gp.ui.commandNumber < 0) {
-                    gp.ui.commandNumber = 2; // Wrap to last option (QUIT GAME)
+                    gp.ui.commandNumber = 1; // Wrap to last option (QUIT GAME)
                 }
                 gp.repaint(); // Force repaint to update UI
             } else if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
                 gp.ui.commandNumber++; // Move down in the menu
-                if (gp.ui.commandNumber > 2) {
+                if (gp.ui.commandNumber > 1) {
                     gp.ui.commandNumber = 0; // Wrap to first option (NEW GAME)
                 }
                 gp.repaint(); // Force repaint to update UI
@@ -47,9 +47,6 @@ public class KeyHandler implements KeyListener {
                     gp.gameState = gp.playState;
                     gp.resetGame(true); // Start a new game
                 } else if (gp.ui.commandNumber == 1) {
-                    // LOAD GAME (not implemented yet)
-                    gp.gameState = gp.playState; // For now, just start the game
-                } else if (gp.ui.commandNumber == 2) {
                     // QUIT GAME
                     System.exit(0);
                 }
