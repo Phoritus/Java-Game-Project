@@ -126,12 +126,12 @@ public class GamePanel extends JPanel implements Runnable {
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         this.setBackground(Color.BLACK);
-    // We implement our own offscreen buffering; disable Swing's double buffering to avoid conflicts/flicker
-    this.setDoubleBuffered(false);
-        // Also disable Swing's global double buffering for this component hierarchy
+        this.setDoubleBuffered(false);
+        
         try {
             javax.swing.RepaintManager.currentManager(this).setDoubleBufferingEnabled(false);
-        } catch (Exception ignore) {}
+        } catch (Exception ignore) {
+        }
         // Additional initialization code can go here
         this.addKeyListener(keyHandler); // Add key listener for input handling
         this.setFocusable(true); // Make the panel focusable to receive key events
@@ -170,7 +170,8 @@ public class GamePanel extends JPanel implements Runnable {
                 java.lang.reflect.Field yField = cutsceneManager.getClass().getDeclaredField("y");
                 yField.setAccessible(true);
                 yField.setInt(cutsceneManager, 0);
-            } catch (Exception ignore) {}
+            } catch (Exception ignore) {
+            }
         }
 
         // Clear any active dialogue/cutscene speaker and UI transient state
@@ -183,7 +184,8 @@ public class GamePanel extends JPanel implements Runnable {
                 java.util.List<?> ctrs = (java.util.List<?>) ui.getClass().getDeclaredField("messageCounters").get(ui);
                 msgs.clear();
                 ctrs.clear();
-            } catch (Exception ignore) {}
+            } catch (Exception ignore) {
+            }
             ui.charIndex = 0;
             ui.combinedText = "";
             ui.typewriterCounter = 0;
@@ -236,7 +238,8 @@ public class GamePanel extends JPanel implements Runnable {
                 envManager.lighting.dayState = envManager.lighting.day;
                 envManager.lighting.setLightSource();
             }
-        } catch (Exception ignore) {}
+        } catch (Exception ignore) {
+        }
 
         // Clear the resetting flag so normal drawing resumes
         resettingGame = false;
@@ -259,7 +262,8 @@ public class GamePanel extends JPanel implements Runnable {
                         }
                     }
                 }
-            } catch (Exception ignore) {}
+            } catch (Exception ignore) {
+            }
         }
 
     }
@@ -308,35 +312,36 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void retry() {
         player.restoreLifeAndMana();
-            // 1) Restore player first
-            player.restoreLifeAndMana();
+        // 1) Restore player first
+        player.restoreLifeAndMana();
 
-            // 2) Switch back to play state immediately
-            gameState = playState;
+        // 2) Switch back to play state immediately
+        gameState = playState;
 
-            // 4) Reset boss/cutscene state so minotour cutscene can trigger again
-            bossBattleOn = false;
-            if (cutsceneManager != null) {
-                cutsceneManager.sceneNum = 0; // NA
-                cutsceneManager.scenePhase = 0;
-                cutsceneManager.counter = 0;
-            }
-            if (ui != null) ui.npc = null;
+        // 4) Reset boss/cutscene state so minotour cutscene can trigger again
+        bossBattleOn = false;
+        if (cutsceneManager != null) {
+            cutsceneManager.sceneNum = 0; // NA
+            cutsceneManager.scenePhase = 0;
+            cutsceneManager.counter = 0;
+        }
+        if (ui != null)
+            ui.npc = null;
 
-            // Remove lingering PlayerDummy if any
-            for (int map = 0; map < maxMap; map++) {
-                for (int i = 0; i < npc[map].length; i++) {
-                    if (npc[map][i] instanceof src.entity.PlayerDummy) {
-                        npc[map][i] = null;
-                    }
+        // Remove lingering PlayerDummy if any
+        for (int map = 0; map < maxMap; map++) {
+            for (int i = 0; i < npc[map].length; i++) {
+                if (npc[map][i] instanceof src.entity.PlayerDummy) {
+                    npc[map][i] = null;
                 }
             }
-            // 6) Reposition and repopulate actors
-            player.setDefaultPositions();
+        }
+        // 6) Reposition and repopulate actors
+        player.setDefaultPositions();
 
-            // 7) Give brief i-frames on respawn
-            player.invincible = true;
-            player.invincibleCounter = 0;
+        // 7) Give brief i-frames on respawn
+        player.invincible = true;
+        player.invincibleCounter = 0;
     }
 
     public void setFullScreen() {
@@ -641,7 +646,8 @@ public class GamePanel extends JPanel implements Runnable {
 
     @Override
     protected void paintComponent(Graphics g) {
-        // Avoid Swing's default background clear to reduce flicker in fullscreen; we draw a full-frame buffer below
+        // Avoid Swing's default background clear to reduce flicker in fullscreen; we
+        // draw a full-frame buffer below
         BufferedImage toDraw;
         synchronized (frameLock) {
             toDraw = tempScreen;
@@ -677,7 +683,8 @@ public class GamePanel extends JPanel implements Runnable {
         // On Windows, ensure display sync to reduce tearing/flicker
         try {
             java.awt.Toolkit.getDefaultToolkit().sync();
-        } catch (Exception ignore) {}
+        } catch (Exception ignore) {
+        }
     }
 
     public void playMusic(int musicIndex) {

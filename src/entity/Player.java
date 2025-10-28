@@ -1,7 +1,6 @@
 package src.entity;
 
 import src.main.KeyHandler;
-import src.environment.Lighting;
 import src.main.GamePanel;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
