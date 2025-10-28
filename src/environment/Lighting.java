@@ -119,8 +119,16 @@ public class Lighting {
   public void draw(Graphics2D g2) {
     // If godMode is on, keep the screen bright (skip dark overlay entirely)
     boolean skipDarkOverlay = gp != null && gp.keyHandler != null && gp.keyHandler.godMode;
+    boolean gameReset = gp != null && gp.resettingGame;
 
-    if (!skipDarkOverlay) {
+    // On game reset, restore brightness to default daytime immediately
+    if (gameReset) {
+      filterAlpha = 0f;
+      dayState = day;
+      setLightSource();
+    }
+
+    if (!skipDarkOverlay && !gameReset) {
       if (gp.currentArea == gp.outside) {
         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, filterAlpha));
       }

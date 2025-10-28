@@ -5,7 +5,6 @@ import javax.swing.SwingUtilities;
 import src.entity.Entity;
 import src.entity.Player;
 import src.environment.EnvironmentManager;
-import src.environment.Lighting;
 import src.tile.TileManager;
 import src.tiles_interactive.InteractiveTile;
 
@@ -120,6 +119,8 @@ public class GamePanel extends JPanel implements Runnable {
 
     // Sound State
     public boolean musicOn = true; // Track if music is on or off
+    // One-shot flag to indicate a full game reset is occurring
+    public boolean resettingGame = false;
 
     // Constructor
     public GamePanel() {
@@ -149,9 +150,67 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void resetGame(boolean restart) {
+        resettingGame = true;
+
+        // Stop any audio and clear temp entities
         stopMusic();
         removeTempEntities();
+
+        // Reset boss/cutscene/ending state so nothing continues running
         bossBattleOn = false;
+        if (cutsceneManager != null) {
+            cutsceneManager.sceneNum = 0; // NA
+            cutsceneManager.scenePhase = 0;
+            cutsceneManager.counter = 0;
+            try {
+                // Reset visual helpers used by ending scene
+                java.lang.reflect.Field alphaField = cutsceneManager.getClass().getDeclaredField("alpha");
+                alphaField.setAccessible(true);
+                alphaField.setFloat(cutsceneManager, 0f);
+                java.lang.reflect.Field yField = cutsceneManager.getClass().getDeclaredField("y");
+                yField.setAccessible(true);
+                yField.setInt(cutsceneManager, 0);
+            } catch (Exception ignore) {}
+        }
+
+        // Clear any active dialogue/cutscene speaker and UI transient state
+        if (ui != null) {
+            ui.npc = null;
+            ui.currentDialogue = "";
+            ui.messageOn = false;
+            try {
+                java.util.List<?> msgs = (java.util.List<?>) ui.getClass().getDeclaredField("messages").get(ui);
+                java.util.List<?> ctrs = (java.util.List<?>) ui.getClass().getDeclaredField("messageCounters").get(ui);
+                msgs.clear();
+                ctrs.clear();
+            } catch (Exception ignore) {}
+            ui.charIndex = 0;
+            ui.combinedText = "";
+            ui.typewriterCounter = 0;
+            ui.titleAnimationCounter = 0;
+            ui.titleCurrentFrame = 0;
+            // Reset menu focus defaults
+            ui.commandNumber = 0;
+        }
+
+        // Clear live effects/entities that could leak across states
+        projectileList.clear();
+        particleList.clear();
+        // Remove lingering PlayerDummy if any
+        for (int map = 0; map < maxMap; map++) {
+            for (int i = 0; i < npc[map].length; i++) {
+                if (npc[map][i] instanceof src.entity.PlayerDummy) {
+                    npc[map][i] = null;
+                }
+            }
+        }
+
+        // Reset input latches to avoid immediate re-trigger
+        keyHandler.enterPressed = false;
+        keyHandler.fPressed = false;
+        keyHandler.tPressed = false;
+
+        // Reset player and world content
         player.setDefaultValues();
         player.setItems();
         assetSetter.setObject();
@@ -159,13 +218,48 @@ public class GamePanel extends JPanel implements Runnable {
         assetSetter.setMonster();
         assetSetter.setInteractiveTile();
         envManager.setup();
+        // Ensure starting area is outside (daytime brightness behavior)
+        currentArea = outside;
+        nextArea = outside;
         if (restart) {
             player.setDefaultPositions();
             player.restoreLifeAndMana();
-
         } else {
             player.worldX = tileSize * 26;
             player.worldY = tileSize * 23;
+        }
+
+        // Reset lighting/brightness to default daylight on reset
+        try {
+            if (envManager != null && envManager.lighting != null) {
+                envManager.lighting.filterAlpha = 0f;
+                envManager.lighting.dayState = envManager.lighting.day;
+                envManager.lighting.setLightSource();
+            }
+        } catch (Exception ignore) {}
+
+        // Clear the resetting flag so normal drawing resumes
+        resettingGame = false;
+
+        // Reset event system so story/cutscene triggers can happen again cleanly
+        if (eventHandler != null) {
+            eventHandler.canTouchEvent = true;
+            eventHandler.previousEventX = player.worldX;
+            eventHandler.previousEventY = player.worldY;
+            // Clear eventDone flags across all maps/tiles
+            try {
+                src.main.EventRect[][][] ers = (src.main.EventRect[][][]) eventHandler.getClass()
+                        .getDeclaredField("eventRect").get(eventHandler);
+                for (int m = 0; m < ers.length; m++) {
+                    for (int c = 0; c < ers[m].length; c++) {
+                        for (int r = 0; r < ers[m][c].length; r++) {
+                            if (ers[m][c][r] != null) {
+                                ers[m][c][r].eventDone = false;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignore) {}
         }
 
     }

@@ -918,6 +918,7 @@ public class UI {
             if (gp.keyHandler.enterPressed) {
                 // Stop any playing background music when returning to title
                 gp.stopMusic();
+                gp.resetGame(true);
                 subState = 0;
                 gp.gameState = gp.titleState;
                 // Reset title menu selection to NEW GAME
