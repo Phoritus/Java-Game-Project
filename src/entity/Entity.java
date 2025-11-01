@@ -13,7 +13,7 @@ import javax.imageio.ImageIO;
 import src.main.GamePanel;
 import src.main.UtilityTool;
 
-public class Entity implements src.interfaces.Updatable, src.interfaces.Drawable {
+public abstract class Entity implements src.interfaces.Updatable, src.interfaces.Drawable {
 
     // State
     protected GamePanel gp;
